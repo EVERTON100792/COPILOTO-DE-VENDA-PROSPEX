@@ -58,13 +58,11 @@ export async function fetchOpenCodeModels(apiKey: string, baseUrl?: string): Pro
   const base = baseUrl || 'https://opencode.ai/zen/v1'
   const endpoint = base.endsWith('/models') ? base : `${base.replace(/\/+$/, '')}/models`
   
-  // Hack to proxy if dev
+  // Hack to proxy to bypass CORS
   let url = endpoint
-  if (isDev()) {
-    if (endpoint.includes('opencode.ai/zen')) url = '/api/opencode_zen/zen/v1/models'
-    else if (endpoint.includes('opencode.co')) url = '/api/opencode_go/models'
-    else if (endpoint.includes('openrouter.ai')) url = '/api/openrouter/models'
-  }
+  if (endpoint.includes('opencode.ai/zen')) url = '/api/opencode_zen/zen/v1/models'
+  else if (endpoint.includes('opencode.co') || endpoint.includes('opencode.ai/zen/go')) url = '/api/opencode_go/models'
+  else if (endpoint.includes('openrouter.ai')) url = '/api/openrouter/models'
 
   try {
     const res = await fetch(url, {
@@ -95,17 +93,15 @@ function resolveEndpoint(provider: string, canonicalBaseUrl: string): string {
     return canonicalBaseUrl.replace(/\/+$/, '')
   }
 
-  if (isDev()) {
-    // Route through Vite proxy in dev mode to bypass CORS
-    const proxyBase = PROXY[provider as keyof typeof PROXY]
-    if (proxyBase) {
-      // Strip the canonical origin so we only keep the path after the host
-      try {
-        const url = new URL(canonicalBaseUrl)
-        return proxyBase + url.pathname.replace(/\/+$/, '')
-      } catch {
-        return proxyBase
-      }
+  // Route through proxy (Vite in dev, Netlify in prod) to bypass CORS
+  const proxyBase = PROXY[provider as keyof typeof PROXY]
+  if (proxyBase) {
+    // Strip the canonical origin so we only keep the path after the host
+    try {
+      const url = new URL(canonicalBaseUrl)
+      return proxyBase + url.pathname.replace(/\/+$/, '')
+    } catch {
+      return proxyBase
     }
   }
 

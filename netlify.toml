@@ -1,4 +1,34 @@
 [[redirects]]
+  from = "/api/opencode_go/*"
+  to = "https://opencode.ai/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/opencode_zen/*"
+  to = "https://opencode.ai/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/openrouter/*"
+  to = "https://openrouter.ai/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/openai/*"
+  to = "https://api.openai.com/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/gemini/*"
+  to = "https://generativelanguage.googleapis.com/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
