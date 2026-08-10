@@ -147,6 +147,23 @@ export const SalesConversationModal: React.FC<Props> = ({ open, company, leadId,
     setOpeningMessage('')
   }
 
+  function generateNewApproach() {
+    setStage('OPENING')
+    setClientInput('')
+    setInstruction(null)
+    setOpeningMessage('')
+    setGeneratingOpening(true)
+    generateOpeningMessageAI(company, apiKey)
+      .then((msg) => {
+        setOpeningMessage(msg)
+        setGeneratingOpening(false)
+      })
+      .catch(() => {
+        setOpeningMessage(generateOpeningMessage(company))
+        setGeneratingOpening(false)
+      })
+  }
+
   function handleClose() {
     resetModal()
     onClose()
@@ -347,6 +364,10 @@ export const SalesConversationModal: React.FC<Props> = ({ open, company, leadId,
                     💬 Abrir no WhatsApp
                   </Button>
                 )}
+                <div style={{ flex: 1 }} />
+                <Button variant="secondary" size="sm" onClick={generateNewApproach} disabled={generatingOpening}>
+                  🔄 Gerar Nova
+                </Button>
               </div>
             </div>
 

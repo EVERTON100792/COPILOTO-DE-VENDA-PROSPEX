@@ -57,20 +57,33 @@ export default function Discovery() {
   const [search, setSearch] = useState('')
   const [showMap, setShowMap] = useState(true)
   const [confirmClear, setConfirmClear] = useState(false)
+  const [activeTab, setActiveTab] = useState<'NEW' | 'CONTACTED'>('NEW')
+  const prospectingSessions = useApp((s) => s.prospectingSessions)
 
   const sorted = useMemo(() => [...runs].reverse(), [runs])
   const active = sorted.find((r) => r.status === 'RUNNING' || r.status === 'QUEUED')
 
+  const contactedCompanyIds = useMemo(() => {
+    return new Set(prospectingSessions.map(s => s.companyId))
+  }, [prospectingSessions])
+
   const filteredCompanies = useMemo(() => {
-    if (!search.trim()) return companies
+    let list = companies
+    if (activeTab === 'NEW') {
+      list = list.filter(c => !contactedCompanyIds.has(c.id))
+    } else {
+      list = list.filter(c => contactedCompanyIds.has(c.id))
+    }
+
+    if (!search.trim()) return list
     const q = search.toLowerCase()
-    return companies.filter(
+    return list.filter(
       (c) =>
         c.name?.toLowerCase().includes(q) ||
         c.category?.toLowerCase().includes(q) ||
         c.city?.toLowerCase().includes(q)
     )
-  }, [companies, search])
+  }, [companies, search, activeTab, contactedCompanyIds])
 
   function handleProspectar(company: Company) {
     setSelectedCompany(company)
@@ -125,6 +138,22 @@ export default function Discovery() {
       {/* Companies Grid */}
       {companies.length > 0 && (
         <>
+          {/* Tabs */}
+          <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+            <Button 
+              variant={activeTab === 'NEW' ? 'primary' : 'secondary'} 
+              onClick={() => setActiveTab('NEW')}
+            >
+              🏢 Resultados da Busca ({companies.length - contactedCompanyIds.size})
+            </Button>
+            <Button 
+              variant={activeTab === 'CONTACTED' ? 'primary' : 'secondary'} 
+              onClick={() => setActiveTab('CONTACTED')}
+            >
+              💬 Conversas Ativas ({contactedCompanyIds.size})
+            </Button>
+          </div>
+
           {/* Search & Map Toggle */}
           <Card>
             <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -217,7 +246,7 @@ export default function Discovery() {
                       style={{ width: '100%' }}
                       onClick={() => handleProspectar(company)}
                     >
-                      ⚡ Prospectar Cliente (IA de Vendas)
+                      {contactedCompanyIds.has(company.id) ? '💬 Continuar Conversa' : '⚡ Prospectar IA'}
                     </Button>
                     {hasLead && (
                       <div style={{ fontSize: 11, color: 'var(--success)', textAlign: 'center' }}>
