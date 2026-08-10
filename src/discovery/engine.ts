@@ -157,6 +157,7 @@ export class DiscoveryService {
 
     let pageToken: string | null = null
     let requests = 0
+    let engineRetries = 0
     let haveMore = true
     const scanBudget = { remaining: 30 }
 
@@ -186,7 +187,8 @@ export class DiscoveryService {
             errorMessage: err?.message ?? 'Não foi possível consultar a fonte neste momento.',
           })
           logger.error('DISCOVERY', `Provider ${provider.id}: ${err?.message ?? 'erro'}`, `status=${String(err?.statusCode ?? '')}`)
-          if (err?.retryable === true && requests === 0) {
+          if (err?.retryable === true && requests === 0 && engineRetries < 2) {
+            engineRetries++
             apply({ steps: [...run.steps, { name: 'RETRYING', at: nowIso() }] })
             await delay(1500)
             continue
