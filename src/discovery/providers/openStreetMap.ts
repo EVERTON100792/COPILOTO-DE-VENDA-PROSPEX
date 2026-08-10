@@ -466,9 +466,9 @@ export class OpenStreetMapProvider implements DiscoveryProvider {
 
   private async queryOverpass(query: string): Promise<{ elements?: OsmElement[] }> {
     const endpoints = [
-      this.overpassEndpoint,
       'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
       'https://overpass.openstreetmap.ru/api/interpreter',
+      this.overpassEndpoint,
     ].filter((v, i, a) => Boolean(v) && a.indexOf(v) === i)
 
     let lastErr: unknown = null
@@ -477,8 +477,8 @@ export class OpenStreetMapProvider implements DiscoveryProvider {
       logger.info('OSM DEBUG', `Executando consulta Overpass:\n${query}`)
     }
 
-    for (const endpoint of endpoints) {
-      for (let attempt = 0; attempt <= RETRY_DELAYS.length; attempt++) {
+    for (let attempt = 0; attempt <= RETRY_DELAYS.length; attempt++) {
+      for (const endpoint of endpoints) {
         const controller = new AbortController()
         const timer = setTimeout(() => controller.abort(), this.timeoutMs)
         let res: Response | null = null
@@ -501,11 +501,7 @@ export class OpenStreetMapProvider implements DiscoveryProvider {
         }
 
         if (!res) {
-          if (attempt < RETRY_DELAYS.length) {
-            await new Promise((r) => setTimeout(r, RETRY_DELAYS[attempt]))
-            continue
-          }
-          break
+          continue
         }
 
         const responseText = await res.text().catch(() => '')
@@ -536,13 +532,10 @@ export class OpenStreetMapProvider implements DiscoveryProvider {
           `Overpass HTTP ${res.status} em ${endpoint}:\n${responseText.slice(0, 500)}`,
           `status=${res.status}`
         )
+      }
 
-        const retryable = RETRYABLE_STATUS.has(res.status)
-        if (retryable && attempt < RETRY_DELAYS.length) {
-          await new Promise((r) => setTimeout(r, RETRY_DELAYS[attempt]))
-          continue
-        }
-        break
+      if (attempt < RETRY_DELAYS.length) {
+        await new Promise((r) => setTimeout(r, RETRY_DELAYS[attempt]))
       }
     }
 
