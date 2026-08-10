@@ -71,6 +71,9 @@ export const SalesConversationModal: React.FC<Props> = ({ open, company, leadId,
   const navigate = useNavigate()
   const settings = useApp((s) => s.settings)
   const toast = useApp((s) => s.toast)
+  const prospectingSessions = useApp((s) => s.prospectingSessions)
+  const upsertProspectingSession = useApp((s) => s.upsertProspectingSession)
+  const moveLead = useApp((s) => s.moveLead)
 
   const [stage, setStage] = useState<SalesStage>('OPENING')
   const [clientInput, setClientInput] = useState('')
@@ -89,25 +92,48 @@ export const SalesConversationModal: React.FC<Props> = ({ open, company, leadId,
   const providerLabel = "OpenCode Go (deepseek-v4-pro)"
 
   React.useEffect(() => {
-    if (!open) {
-      setOpeningMessage('')
+    if (open && company) {
+      const existingSession = useApp.getState().prospectingSessions.find((s) => s.companyId === company.id)
+      if (existingSession && existingSession.openingMessage) {
+        setOpeningMessage(existingSession.openingMessage)
+        if (existingSession.uiState) {
+          setStage(existingSession.uiState.stage as SalesStage)
+          setClientInput(existingSession.uiState.clientInput)
+          setInstruction(existingSession.uiState.instruction)
+        }
+      } else if (!openingMessage && !generatingOpening) {
+        setGeneratingOpening(true)
+        generateOpeningMessageAI(company, apiKey)
+          .then((msg) => {
+            setOpeningMessage(msg)
+            setGeneratingOpening(false)
+          })
+          .catch(() => {
+            setOpeningMessage(generateOpeningMessage(company))
+            setGeneratingOpening(false)
+          })
+      }
     }
-  }, [open, company?.id])
+  }, [open, company?.id]) // only run on open/company change to avoid loops
 
+  // Save session state to store whenever local state changes
   React.useEffect(() => {
-    if (open && company && !openingMessage && !generatingOpening) {
-      setGeneratingOpening(true)
-      generateOpeningMessageAI(company, apiKey)
-        .then((msg) => {
-          setOpeningMessage(msg)
-          setGeneratingOpening(false)
-        })
-        .catch(() => {
-          setOpeningMessage(generateOpeningMessage(company))
-          setGeneratingOpening(false)
-        })
+    if (open && company && openingMessage) {
+      const existingSession = useApp.getState().prospectingSessions.find((s) => s.companyId === company.id)
+      const sessionId = existingSession?.id || uid()
+      
+      upsertProspectingSession({
+        id: sessionId,
+        companyId: company.id,
+        status: 'IN_PROGRESS',
+        messages: existingSession?.messages || [],
+        openingMessage,
+        uiState: { stage, clientInput, instruction },
+        createdAt: existingSession?.createdAt || nowIso(),
+        updatedAt: nowIso(),
+      })
     }
-  }, [open, company])
+  }, [stage, clientInput, instruction, openingMessage, open, company?.id])
 
   function resetModal() {
     setStage('OPENING')
@@ -126,14 +152,26 @@ export const SalesConversationModal: React.FC<Props> = ({ open, company, leadId,
     onClose()
   }
 
+  function markLeadContacted() {
+    const lead = leadId 
+      ? useApp.getState().leads.find(l => l.id === leadId)
+      : useApp.getState().leads.find(l => l.companyId === company?.id)
+      
+    if (lead) {
+      moveLead(lead.id, 'CONTACTED')
+    }
+  }
+
   function copyOpening() {
     navigator.clipboard.writeText(openingMessage)
     setCopiedOpening(true)
-    toast('success', 'Mensagem de abertura copiada!')
+    toast('success', 'Mensagem de abertura copiada! Status do cliente atualizado para Contatado.')
+    markLeadContacted()
     setTimeout(() => setCopiedOpening(false), 3000)
   }
 
   function openWhatsApp() {
+    markLeadContacted()
     const phone = company?.whatsapp || company?.phone
     if (!phone) { copyOpening(); return }
     const digits = phone.replace(/\D/g, '')

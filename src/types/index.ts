@@ -798,6 +798,11 @@ export interface ProspectingSession {
   status: ProspectingStatus
   messages: ProspectingMessage[]
   openingMessage: string | null
+  uiState?: {
+    stage: string
+    clientInput: string
+    instruction: any
+  }
   createdAt: string
   updatedAt: string
 }
