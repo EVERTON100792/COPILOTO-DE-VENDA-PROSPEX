@@ -125,8 +125,8 @@ export default function Companies() {
           <p className="page-subtitle">{list.length} de {companies.length} empresa(s)</p>
         </div>
         <div className="page-actions">
-          <Button variant="secondary" onClick={() => setMapsImportOpen(true)}>Nova Empresa (Maps)</Button>
-          <Button variant="primary" onClick={() => setImportOpen(true)}>Importar CSV</Button>
+          <Button variant="primary" onClick={() => setMapsImportOpen(true)} className="shadow-lg shadow-primary/30 ring-2 ring-primary/50 animate-pulse-soft">✨ Cadastrar Empresa (IA)</Button>
+          <Button variant="secondary" onClick={() => setImportOpen(true)}>Importar CSV</Button>
           <Button variant="secondary" onClick={() => exportCompanies('csv')}>Exportar CSV</Button>
           <Button variant="secondary" onClick={() => exportCompanies('json')}>Exportar JSON</Button>
           <Button variant="danger" onClick={() => setConfirmClear('all')}>🗑️ Limpar Tudo</Button>
