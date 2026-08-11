@@ -408,7 +408,8 @@ export class OpenStreetMapProvider implements DiscoveryProvider {
   constructor(opts: OpenStreetMapProviderOptions = {}) {
     this.overpassEndpoint = opts.overpassEndpoint ?? DEFAULT_OVERPASS_ENDPOINT
     this.nominatimEndpoint = opts.nominatimEndpoint ?? DEFAULT_NOMINATIM_ENDPOINT
-    this.timeoutMs = opts.timeoutMs ?? 45000
+    // Reduzido para 18s para falhar rápido e tentar o próximo endpoint em vez de travar
+    this.timeoutMs = opts.timeoutMs ?? 18000
     this.maxDepth = opts.maxDepth ?? 3
     this.fetchImpl = opts.fetchImpl ?? fetch
   }
@@ -437,7 +438,7 @@ export class OpenStreetMapProvider implements DiscoveryProvider {
     const path = queue.shift() ?? []
     const region = boxForPath(geo.bbox, path)
 
-    const query = buildOverpassQuery(category.tags, region, { timeoutSec: 25, pageSize: limit })
+    const query = buildOverpassQuery(category.tags, region, { timeoutSec: 15, pageSize: limit })
     const raw = await this.queryOverpass(query)
 
     const businesses: ProviderBusiness[] = []
@@ -468,10 +469,12 @@ export class OpenStreetMapProvider implements DiscoveryProvider {
   }
 
   private async queryOverpass(query: string): Promise<{ elements?: OsmElement[] }> {
+    // Endpoints oficiais e espelhos confiáveis do Overpass
     const endpoints = [
-      'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
-      'https://overpass.openstreetmap.ru/api/interpreter',
-      this.overpassEndpoint,
+      this.overpassEndpoint, // https://overpass-api.de/api/interpreter
+      'https://lz4.overpass-api.de/api/interpreter',
+      'https://z.overpass-api.de/api/interpreter',
+      'https://overpass.kumi.systems/api/interpreter',
     ].filter((v, i, a) => Boolean(v) && a.indexOf(v) === i)
 
     let lastErr: unknown = null
