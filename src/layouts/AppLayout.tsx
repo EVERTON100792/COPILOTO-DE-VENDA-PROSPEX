@@ -34,6 +34,7 @@ export function AppLayout() {
   const leads = useApp((s) => s.leads)
   const companies = useApp((s) => s.companies)
   const [notifOpen, setNotifOpen] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const unread = notifications.filter((n) => !n.read).length
 
@@ -56,7 +57,12 @@ export function AppLayout() {
 
   return (
     <div className="app-shell">
-      <aside className="sidebar" aria-label="Navegação principal">
+      {/* Overlay para mobile */}
+      {mobileMenuOpen && (
+        <div className="mobile-overlay" onClick={() => setMobileMenuOpen(false)}></div>
+      )}
+
+      <aside className={`sidebar ${mobileMenuOpen ? 'mobile-open' : ''}`} aria-label="Navegação principal">
         <div className="sidebar-brand">
           <div className="logo">P</div>
           <div className="brand-name">
@@ -74,6 +80,7 @@ export function AppLayout() {
                   to={item.to}
                   className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
                   end={item.to === '/'}
+                  onClick={() => setMobileMenuOpen(false)}
                 >
                   <span className="icon" aria-hidden="true">{item.icon}</span>
                   {item.label}
@@ -96,8 +103,16 @@ export function AppLayout() {
 
       <div className="app-main">
         <header className="topbar">
-          <div className="topbar-search">
-            <span aria-hidden="true">🔍</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button 
+              className="mobile-menu-btn icon-btn" 
+              onClick={() => setMobileMenuOpen(true)}
+              aria-label="Abrir Menu"
+            >
+              ☰
+            </button>
+            <div className="topbar-search">
+              <span aria-hidden="true">🔍</span>
             <input
               placeholder="Buscar leads, empresas, telefone..."
               value={query}
