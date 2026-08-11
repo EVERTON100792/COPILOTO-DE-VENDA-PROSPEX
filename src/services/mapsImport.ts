@@ -11,7 +11,7 @@ export interface MapsImportResult {
   error?: string
 }
 
-export async function importFromMaps(name: string, city: string, url: string): Promise<MapsImportResult> {
+export async function importFromMaps(name: string, city: string, url: string, prefilledData?: Partial<ExtractedImageInfo>): Promise<MapsImportResult> {
   const store = useApp.getState()
   
   if (!name.trim()) {
@@ -24,7 +24,7 @@ export async function importFromMaps(name: string, city: string, url: string): P
       name,
       city,
       state: '',
-      category: 'Local Business' // Genérico, a IA afunila depois
+      category: prefilledData?.category || 'Local Business' // O agente refina depois
     })
 
     // 2. Cria a entidade Company
@@ -33,26 +33,26 @@ export async function importFromMaps(name: string, city: string, url: string): P
       id: companyId,
       workspaceId: store.workspaceId,
       name: name.trim(),
-      category: searchData.summary || 'Comércio/Serviço',
+      category: prefilledData?.category || searchData.summary || 'Comércio/Serviço',
       city: city || null,
       state: null,
-      address: searchData.address || null,
-      phone: searchData.phone || null,
-      whatsapp: searchData.phone || null, // Assumimos que pode ser zap
+      address: prefilledData?.address || searchData.address || null,
+      phone: prefilledData?.phone || searchData.phone || null,
+      whatsapp: prefilledData?.phone || searchData.phone || null, // Assumimos que pode ser zap
       email: searchData.email || null,
-      website: searchData.website || null,
+      website: prefilledData?.website || searchData.website || null,
       instagram: searchData.instagram || null,
       facebook: searchData.facebook || null,
       rating: searchData.rating || null,
       reviewCount: searchData.reviewCount || null,
-      hours: searchData.hours || null,
+      hours: prefilledData?.hours || searchData.hours || null,
       summary: searchData.summary || null,
       source: 'MANUAL_MAPS',
-      sourceUrl: url,
+      sourceUrl: url || null,
       isDemo: false,
       createdAt: nowIso(),
       dataStatus: 'MANUAL',
-      sourceType: 'maps_url',
+      sourceType: url ? 'maps_url' : 'maps_print',
       retrievedAt: nowIso(),
     }
 
@@ -105,5 +105,59 @@ export async function importFromMaps(name: string, city: string, url: string): P
   } catch (error: any) {
     console.error('Erro no importFromMaps:', error)
     return { success: false, error: error.message || 'Erro desconhecido ao processar URL.' }
+  }
+}
+
+export interface ExtractedImageInfo {
+  name: string
+  city: string
+  category: string
+  address: string
+  phone: string
+  website: string
+  hours: string
+}
+
+export async function extractDataFromImage(base64Image: string): Promise<ExtractedImageInfo> {
+  const { callAI } = await import('./aiClient')
+  
+  const systemPrompt = `
+Você é um extrator de dados de imagens de empresas (Google Maps, sites, etc).
+Sua tarefa é analisar o print/screenshot enviado pelo usuário e extrair os dados da empresa visível.
+Retorne APENAS um JSON estrito, sem markdown, contendo os seguintes campos:
+- "name": Nome da empresa (string)
+- "city": Cidade da empresa (string)
+- "category": Nicho ou categoria principal da empresa (ex: "Oficina Mecânica", "Pizzaria") (string)
+- "address": Endereço completo (string)
+- "phone": Número de telefone (string)
+- "website": URL do site (string)
+- "hours": Horário de funcionamento, ex: "Aberto até as 18:00" (string)
+
+Se um campo não estiver visível ou não for dedutível, retorne string vazia "". Não use null.`
+
+  const userMessage = "Extraia as informações desta imagem e devolva o JSON."
+
+  const result = await callAI({
+    systemPrompt,
+    userMessage,
+    imageBase64: base64Image,
+    temperature: 0.2
+  })
+
+  try {
+    const raw = result.replace(/```json/g, '').replace(/```/g, '').trim()
+    const data = JSON.parse(raw)
+    return {
+      name: data.name || '',
+      city: data.city || '',
+      category: data.category || '',
+      address: data.address || '',
+      phone: data.phone || '',
+      website: data.website || '',
+      hours: data.hours || ''
+    }
+  } catch (err) {
+    console.error('Falha ao parsear JSON da imagem', err, result)
+    throw new Error('Não foi possível extrair dados estruturados da imagem.')
   }
 }

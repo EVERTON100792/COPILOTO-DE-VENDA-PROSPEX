@@ -8,6 +8,7 @@ export interface AIClientOptions {
   model?: string
   temperature?: number
   maxTokens?: number
+  imageBase64?: string
 }
 
 // OpenCode Zen models (correct IDs for https://opencode.ai/zen/v1)
@@ -150,6 +151,13 @@ export async function callAI(options: AIClientOptions): Promise<string> {
 
   let lastError: Error | null = null
 
+  const userContent = options.imageBase64
+    ? [
+        { type: 'text', text: options.userMessage },
+        { type: 'image_url', image_url: { url: options.imageBase64 } }
+      ]
+    : options.userMessage
+
   for (const model of modelsToTry) {
     try {
       console.info(`[AI Client] Trying model: ${model}`)
@@ -160,7 +168,7 @@ export async function callAI(options: AIClientOptions): Promise<string> {
           model,
           messages: [
             { role: 'system', content: options.systemPrompt },
-            { role: 'user', content: options.userMessage },
+            { role: 'user', content: userContent },
           ],
           max_tokens: options.maxTokens || 2000,
           temperature: options.temperature ?? 0.7,
