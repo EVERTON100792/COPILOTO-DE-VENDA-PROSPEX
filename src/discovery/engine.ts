@@ -407,8 +407,8 @@ export class DiscoveryService {
       websiteQualityScore: websiteQuality,
       instagram: business.instagram,
       facebook: business.facebook,
-      rating: company.rating,
-      reviewCount: company.reviewCount,
+      rating: company.rating ?? null,
+      reviewCount: company.reviewCount ?? null,
       score: score.score,
     })
 
