@@ -233,7 +233,8 @@ export const useApp = create<AppState>((set, get) => ({
   },
   removeCompany: (id) => {
     const companies = get().companies.filter((c) => c.id !== id)
-    set({ companies }); persist({ companies })
+    const leads = get().leads.filter((l) => l.companyId !== id)
+    set({ companies, leads }); persist({ companies, leads })
   },
   clearAllCompanies: () => {
     set({ companies: [], leads: [], discoveryResults: [], discoveryRuns: [] })

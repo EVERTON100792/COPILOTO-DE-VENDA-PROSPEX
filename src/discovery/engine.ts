@@ -164,13 +164,13 @@ export class DiscoveryService {
 
     try {
       for (const segment of segments) {
-        if (cancelled() || run.newCount + run.duplicateCount >= query.limit) break
+        if (cancelled() || run.newCount >= query.limit) break
         
         let pageToken: string | null = null
         let haveMore = true
         let segmentFound = 0 // Track how many valid leads we found for this specific segment
 
-        while (haveMore && requests < rate.maxRequests && segmentFound < limitPerSegment && run.newCount + run.duplicateCount < query.limit) {
+        while (haveMore && requests < rate.maxRequests && segmentFound < limitPerSegment && run.newCount < query.limit) {
           if (cancelled()) {
             apply({ status: 'CANCELLED', cancelled: true, completedAt: nowIso(), errorMessage: 'Execução cancelada pelo usuário.' })
             return useApp.getState().discoveryRuns.find((r) => r.id === run.id) as DiscoveryRun
@@ -208,18 +208,18 @@ export class DiscoveryService {
           haveMore = resp.hasMore
 
           for (const b of resp.businesses) {
-            if (segmentFound >= limitPerSegment || run.newCount + run.duplicateCount >= query.limit) break
+            if (segmentFound >= limitPerSegment || run.newCount >= query.limit) break
             if (cancelled()) break
-            const before = run.newCount + run.duplicateCount
+            const before = run.newCount
             await this.processBusiness(b, run, query, scanBudget)
             run = useApp.getState().discoveryRuns.find((r) => r.id === run.id) ?? run
-            const after = run.newCount + run.duplicateCount
+            const after = run.newCount
             if (after > before) {
               segmentFound++
             }
           }
 
-          if (haveMore && rate.delayMs > 0 && segmentFound < limitPerSegment && run.newCount + run.duplicateCount < query.limit) {
+          if (haveMore && rate.delayMs > 0 && segmentFound < limitPerSegment && run.newCount < query.limit) {
             await delay(rate.delayMs)
           }
         }

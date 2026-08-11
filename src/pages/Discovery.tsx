@@ -61,6 +61,8 @@ export default function Discovery() {
   const prospectingSessions = useApp((s) => s.prospectingSessions)
 
   const sorted = useMemo(() => [...runs].reverse(), [runs])
+  const removeCompany = useApp((s) => s.removeCompany)
+
   const active = sorted.find((r) => r.status === 'RUNNING' || r.status === 'QUEUED')
 
   const contactedCompanyIds = useMemo(() => {
@@ -144,7 +146,7 @@ export default function Discovery() {
               variant={activeTab === 'NEW' ? 'primary' : 'secondary'} 
               onClick={() => setActiveTab('NEW')}
             >
-              🏢 Resultados da Busca ({companies.length - contactedCompanyIds.size})
+              🏢 Resultados da Busca ({companies.filter(c => !contactedCompanyIds.has(c.id)).length})
             </Button>
             <Button 
               variant={activeTab === 'CONTACTED' ? 'primary' : 'secondary'} 
@@ -189,93 +191,126 @@ export default function Discovery() {
             </Card>
           )}
 
-          {/* Company Cards */}
-          <div className="grid grid-3">
-            {filteredCompanies.map((company) => {
-              const ws = websiteStatus(company)
-              const icon = categoryIcon(company.category)
-              const hasLead = leadsByCompany.has(company.id)
-              return (
-                <Card key={company.id} className="card-hover" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                  <div>
-                    {/* Header */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-                      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                        <div style={{
-                          width: 40, height: 40, borderRadius: 10, flexShrink: 0,
-                          background: 'var(--surface-2)', display: 'grid', placeItems: 'center',
-                          fontSize: 20, border: '1px solid var(--border)'
-                        }}>
-                          {icon}
-                        </div>
+          {/* Company Cards Grouped by Niche */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+            {Object.entries(
+              filteredCompanies.reduce((acc, company) => {
+                const cat = company.category || 'Outros'
+                if (!acc[cat]) acc[cat] = []
+                acc[cat].push(company)
+                return acc
+              }, {} as Record<string, typeof filteredCompanies>)
+            ).map(([category, list]) => (
+              <div key={category}>
+                <h2 style={{ fontSize: 18, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 22 }}>{categoryIcon(category)}</span>
+                  {category}
+                  <span style={{ fontSize: 13, color: 'var(--muted)', fontWeight: 400, marginLeft: 8 }}>
+                    ({list.length} empresas)
+                  </span>
+                </h2>
+                
+                <div className="horizontal-scroll-container">
+                  {list.map((company) => {
+                    const ws = websiteStatus(company)
+                    const icon = categoryIcon(company.category)
+                    const hasLead = leadsByCompany.has(company.id)
+                    return (
+                      <Card key={company.id} className="card-hover" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%', padding: '16px 20px' }}>
                         <div>
-                          <div style={{ fontWeight: 700, fontSize: 14, lineHeight: 1.3 }}>{company.name}</div>
-                          <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
-                            {company.category || 'Negócio Local'}
+                          {/* Header */}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                            <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                              <div style={{
+                                width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+                                background: 'var(--surface-2)', display: 'grid', placeItems: 'center',
+                                fontSize: 20, border: '1px solid var(--border)'
+                              }}>
+                                {icon}
+                              </div>
+                              <div>
+                                <div style={{ fontWeight: 700, fontSize: 14, lineHeight: 1.3, wordBreak: 'break-word', paddingRight: 8 }}>{company.name}</div>
+                                <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
+                                  {company.category || 'Negócio Local'}
+                                </div>
+                              </div>
+                            </div>
+                            <Button 
+                              variant="danger" 
+                              style={{ padding: '2px 6px', fontSize: 11, background: 'transparent', color: 'var(--muted)', border: 'none' }}
+                              onClick={() => removeCompany(company.id)}
+                              title="Excluir permanentemente"
+                            >
+                              🗑️
+                            </Button>
                           </div>
+
+                          {/* Badge Website */}
+                          <div style={{ marginBottom: 10 }}>
+                            <Badge variant={ws.variant}>{ws.label}</Badge>
+                          </div>
+
+                          {/* Info */}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12, color: 'var(--muted)', marginBottom: 12 }}>
+                            {company.city && <span style={{ display: 'flex', gap: 6 }}><span style={{ color: 'var(--primary)' }}>📍</span> {company.city}{company.state ? `/${company.state}` : ''}</span>}
+                            {company.phone && <span style={{ display: 'flex', gap: 6 }}><span style={{ color: 'var(--success)' }}>💬</span> {company.phone}</span>}
+                            {company.rating && <span style={{ display: 'flex', gap: 6 }}><span style={{ color: 'var(--warning)' }}>⭐</span> {company.rating.toFixed(1)} ({company.reviewCount || 0} avaliações)</span>}
+                            {company.website && (
+                              <a href={company.website} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--info)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', gap: 6 }}>
+                                <span>🌐</span> {company.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                              </a>
+                            )}
+                            {company.instagram && (
+                              <a href={company.instagram} target="_blank" rel="noopener noreferrer" style={{ color: '#E1306C', display: 'flex', gap: 6 }}>
+                                <span>📸</span> Instagram
+                              </a>
+                            )}
+                            {company.hours && <span style={{ display: 'flex', gap: 6 }}><span>🕒</span> {company.hours.length > 30 ? company.hours.substring(0, 30) + '...' : company.hours}</span>}
+                            {company.summary && <span style={{ display: 'flex', gap: 6, fontStyle: 'italic', color: 'var(--fg)', marginTop: 4 }}><span>📝</span> {company.summary.length > 80 ? company.summary.substring(0, 80) + '...' : company.summary}</span>}
+                          </div>
+
+                          {/* Demo badge */}
+                          {company.isDemo && (
+                            <div style={{ marginBottom: 8 }}>
+                              <Badge variant="muted">DEMO</Badge>
+                            </div>
+                          )}
                         </div>
-                      </div>
-                      <Badge variant={ws.variant}>{ws.label}</Badge>
-                    </div>
 
-                    {/* Info */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12, color: 'var(--muted)', marginBottom: 12 }}>
-                      {company.city && <span style={{ display: 'flex', gap: 6 }}><span style={{ color: 'var(--primary)' }}>📍</span> {company.city}{company.state ? `/${company.state}` : ''}</span>}
-                      {company.phone && <span style={{ display: 'flex', gap: 6 }}><span style={{ color: 'var(--success)' }}>💬</span> {company.phone}</span>}
-                      {company.rating && <span style={{ display: 'flex', gap: 6 }}><span style={{ color: 'var(--warning)' }}>⭐</span> {company.rating.toFixed(1)} ({company.reviewCount || 0} avaliações)</span>}
-                      {company.website && (
-                        <a href={company.website} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--info)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', gap: 6 }}>
-                          <span>🌐</span> {company.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}
-                        </a>
-                      )}
-                      {company.instagram && (
-                        <a href={company.instagram} target="_blank" rel="noopener noreferrer" style={{ color: '#E1306C', display: 'flex', gap: 6 }}>
-                          <span>📸</span> Instagram
-                        </a>
-                      )}
-                      {company.hours && <span style={{ display: 'flex', gap: 6 }}><span>🕒</span> {company.hours.length > 30 ? company.hours.substring(0, 30) + '...' : company.hours}</span>}
-                      {company.summary && <span style={{ display: 'flex', gap: 6, fontStyle: 'italic', color: 'var(--fg)', marginTop: 4 }}><span>📝</span> {company.summary.length > 80 ? company.summary.substring(0, 80) + '...' : company.summary}</span>}
-                    </div>
-
-                    {/* Demo badge */}
-                    {company.isDemo && (
-                      <div style={{ marginBottom: 8 }}>
-                        <Badge variant="muted">DEMO</Badge>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* CTA */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        style={{ flex: 1 }}
-                        onClick={() => handleProspectar(company)}
-                      >
-                        {contactedCompanyIds.has(company.id) ? '💬 Continuar Conversa' : '⚡ Prospectar IA'}
-                      </Button>
-                      <a 
-                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(company.name + ' ' + (company.city || ''))}`}
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="btn btn-secondary btn-sm"
-                        style={{ padding: '6px 10px' }}
-                        title="Ver no Google Maps"
-                      >
-                        🗺️
-                      </a>
-                    </div>
-                    {hasLead && (
-                      <div style={{ fontSize: 11, color: 'var(--success)', textAlign: 'center' }}>
-                        ✓ Lead já cadastrado
-                      </div>
-                    )}
-                  </div>
-                </Card>
-              )
-            })}
+                        {/* CTA */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 'auto' }}>
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              style={{ flex: 1 }}
+                              onClick={() => handleProspectar(company)}
+                            >
+                              {contactedCompanyIds.has(company.id) ? '💬 Continuar Conversa' : '⚡ Prospectar IA'}
+                            </Button>
+                            <a 
+                              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(company.name + ' ' + (company.city || ''))}`}
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="btn btn-secondary btn-sm"
+                              style={{ padding: '6px 10px' }}
+                              title="Ver no Google Maps"
+                            >
+                              🗺️
+                            </a>
+                          </div>
+                          {hasLead && (
+                            <div style={{ fontSize: 11, color: 'var(--success)', textAlign: 'center' }}>
+                              ✓ Lead já cadastrado
+                            </div>
+                          )}
+                        </div>
+                      </Card>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         </>
       )}
