@@ -293,29 +293,9 @@ export class DiscoveryService {
       return
     }
 
-    // --- ENRIQUECIMENTO COM IA ---
-    let finalPhone = phone
-    let finalWebsite = website
-    try {
-      const searchAgent = new SearchAIAgent()
-      const aiData = await searchAgent.execute({
-        name: name.name,
-        city,
-        state,
-        category: business.category
-      }, {} as any)
-      
-      const out = aiData.output as SearchAIAgentOutput
-      if (out.phone && !finalPhone) finalPhone = out.phone
-      if (out.website && !finalWebsite) finalWebsite = out.website
-      if (out.rating && !business.rating) business.rating = out.rating
-      if (out.reviewCount && !business.reviewCount) business.reviewCount = out.reviewCount
-    } catch (e) {
-      console.warn('[DiscoveryService] Erro ao enriquecer com IA', e)
-    }
-
+    const companyId = uid('cmp')
     const company: Company = {
-      id: uid('cmp'),
+      id: companyId,
       workspaceId: s.workspaceId,
       name: name.name,
       category: business.category,
@@ -323,10 +303,10 @@ export class DiscoveryService {
       state,
       country: business.country ?? 'BR',
       address: business.address,
-      phone: finalPhone,
+      phone,
       whatsapp: null,
       email: null,
-      website: finalWebsite,
+      website,
       instagram: business.instagram,
       facebook: business.facebook,
       rating: business.rating,
@@ -468,8 +448,38 @@ export class DiscoveryService {
       createdAt: now,
       updatedAt: now,
     }
-    s.setLeads([...s.leads, lead])
-    const liveNew = useApp.getState().discoveryRuns.find((r) => r.id === run.id) ?? run
-    bump({ newCount: liveNew.newCount + 1 })
+    s.upsertLead(lead)
+
+    // --- ENRIQUECIMENTO COM IA (ASSÍNCRONO/BACKGROUND) ---
+    // Isso evita travar o loop de descoberta enquanto a IA navega na web.
+    ;(async () => {
+      try {
+        const searchAgent = new SearchAIAgent()
+        const aiData = await searchAgent.execute({
+          name: name.name,
+          city,
+          state,
+          category: business.category
+        }, {} as any)
+        
+        const out = aiData.output as SearchAIAgentOutput
+        const comp = useApp.getState().companies.find(c => c.id === companyId)
+        if (comp) {
+          const updates: Partial<Company> = {}
+          if (out.phone && !comp.phone) updates.phone = out.phone
+          if (out.website && !comp.website) updates.website = out.website
+          if (out.rating && !comp.rating) updates.rating = out.rating
+          if (out.reviewCount && !comp.reviewCount) updates.reviewCount = out.reviewCount
+          if (Object.keys(updates).length > 0) {
+            useApp.getState().upsertCompany({ ...comp, ...updates })
+          }
+        }
+      } catch (e) {
+        console.warn('[DiscoveryService] Erro no enriquecimento assíncrono com IA', e)
+      }
+    })()
+
+    const liveRun = useApp.getState().discoveryRuns.find((r) => r.id === run.id) ?? run
+    bump({ newCount: liveRun.newCount + 1 })
   }
 }
