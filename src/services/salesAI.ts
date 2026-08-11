@@ -106,9 +106,10 @@ Cidade: ${company?.city || 'Rolândia'}
 ${extraFacts ? `\nFATOS DESCOBERTOS NA INTERNET SOBRE A EMPRESA:\n${extraFacts}` : ''}
 
 INSTRUÇÕES:
-- O texto deve ser super natural, amigável e direto.
+- Inicie com uma saudação educada e profissional, porém amigável (Ex: "Olá,", "Bom dia," ou "Boa tarde,"). NUNCA inicie com gírias como "Fala!".
+- O texto deve ser natural, educado e ir direto ao ponto de forma cordial.
 - Diga que você preparou uma demonstração gratuita de um site exclusivo para eles e pergunte se pode enviar o link.
-- ${extraFacts ? 'USE SUTILMENTE 1 DOS FATOS DESCOBERTOS (resumo, horário ou endereço) para provar que você estudou a empresa de verdade antes de mandar a mensagem. Ex: "Vi que vocês abrem às..." ou "Notei que o foco de vocês é...". Não seja robótico.' : 'Seja direto e cordial.'}
+- ${extraFacts ? 'USE SUTILMENTE 1 DOS FATOS DESCOBERTOS (resumo, horário ou endereço) para provar que você estudou a empresa. Ex: "Notei que o endereço de vocês fica na..." ou "Vi que o foco de vocês é...".' : 'Seja direto e cordial.'}
 - Não use palavras difíceis ou jargões.
 - Retorne APENAS o texto da mensagem, sem aspas, sem formatação JSON, sem introduções.`
 
