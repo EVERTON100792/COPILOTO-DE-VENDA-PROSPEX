@@ -110,9 +110,9 @@ export function resolveOsmCategory(segment: string): OsmCategory | null {
   for (const cat of OSM_CATEGORIES) {
     for (const kw of cat.keywords) {
       const k = FOLD(kw)
-      // Usar word boundaries (\b) para não casar "barbearia" com "bar"
-      const regex = new RegExp(`\\b${k}\\b`, 'i')
-      if (regex.test(seg) || k === seg) return cat
+      // Usar limites de palavra no início e no fim, mas permitindo plural ('s' ou 'es') no final
+      const regex = new RegExp(`(^|\\s)${k}(s|es)?(\\s|$)`, 'i')
+      if (regex.test(seg) || k === seg || k + 's' === seg) return cat
     }
   }
   return null
