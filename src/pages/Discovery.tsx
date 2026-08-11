@@ -228,6 +228,13 @@ export default function Discovery() {
                           <span>🌐</span> {company.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}
                         </a>
                       )}
+                      {company.instagram && (
+                        <a href={company.instagram} target="_blank" rel="noopener noreferrer" style={{ color: '#E1306C', display: 'flex', gap: 6 }}>
+                          <span>📸</span> Instagram
+                        </a>
+                      )}
+                      {company.hours && <span style={{ display: 'flex', gap: 6 }}><span>🕒</span> {company.hours.length > 30 ? company.hours.substring(0, 30) + '...' : company.hours}</span>}
+                      {company.summary && <span style={{ display: 'flex', gap: 6, fontStyle: 'italic', color: 'var(--fg)', marginTop: 4 }}><span>📝</span> {company.summary.length > 80 ? company.summary.substring(0, 80) + '...' : company.summary}</span>}
                     </div>
 
                     {/* Demo badge */}

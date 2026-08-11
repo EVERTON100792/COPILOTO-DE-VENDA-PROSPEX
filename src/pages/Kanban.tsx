@@ -75,8 +75,12 @@ export default function Kanban() {
                         {l.score != null && <Badge variant={scoreVariant(l.score)}>{l.score}</Badge>}
                       </div>
                       <div className="tiny muted">{c?.city ?? ''}{c?.city && c?.state ? `/${c.state}` : ''}</div>
-                      <div className="tiny muted">
-                        {l.hasWhatsapp ? '💬' : ''} {l.hasInstagram ? '📸' : ''} {l.websiteStatus === 'NO_WEBSITE' ? '🚫site' : ''}
+                      {c?.summary && <div className="tiny" style={{ marginTop: 4, fontStyle: 'italic', color: 'var(--fg)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>📝 {c.summary}</div>}
+                      <div className="tiny muted mt-4">
+                        {l.hasWhatsapp ? '💬 ' : ''} 
+                        {c?.instagram ? '📸 ' : ''} 
+                        {c?.hours ? '🕒 ' : ''}
+                        {l.websiteStatus === 'NO_WEBSITE' ? '🚫site' : ''}
                       </div>
                     </div>
                   )
