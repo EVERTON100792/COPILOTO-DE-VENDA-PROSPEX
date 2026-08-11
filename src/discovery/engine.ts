@@ -325,7 +325,7 @@ export class DiscoveryService {
       rawDataId: rawId,
       discoveryConfidence: validation.confidence,
       confidenceReasons: validation.reasons,
-      phoneNormalized: finalPhone,
+      phoneNormalized: phone,
       phoneCountry: 'BR',
       phoneType: 'mobile',
       whatsappStatus: 'UNKNOWN',
@@ -340,10 +340,10 @@ export class DiscoveryService {
     let websiteQuality: number | null = null
     let websiteFactors: import('../types').ScoreBreakdown[] | null = null
     let websiteScan: WebsiteScan | null = null
-    if (finalWebsite && scanBudget.remaining > 0) {
+    if (website && scanBudget.remaining > 0) {
       scanBudget.remaining -= 1
       const race = await Promise.race([
-        scanWebsite(finalWebsite),
+        scanWebsite(website),
         delay(SCAN_TIMEOUT_MS).then(() => null),
       ])
       if (race) {
@@ -372,7 +372,7 @@ export class DiscoveryService {
           checkedAt: race.checkedAt,
         }
       }
-      company.website = finalWebsite
+      company.website = website
       company.websiteQualityScore = websiteQuality
       company.websiteQualityFactors = websiteFactors
       company.websiteCheckedAt = nowIso()
@@ -386,9 +386,9 @@ export class DiscoveryService {
       city,
       state,
       address: business.address,
-      phone: finalPhone,
+      phone: phone,
       whatsapp: null,
-      website: finalWebsite,
+      website: website,
       instagram: business.instagram,
       facebook: business.facebook,
       rating: business.rating,
@@ -396,9 +396,9 @@ export class DiscoveryService {
       hours: business.hours,
       source: business.provider,
       normalizedName: name.name,
-      normalizedPhone: finalPhone,
-      domain: hostnameOf(finalWebsite),
-      complete: Boolean(name.name && (finalPhone || finalWebsite)),
+      normalizedPhone: phone,
+      domain: hostnameOf(website),
+      complete: Boolean(name.name && (phone || website)),
     }
     const score = computeScore({ company: normalized, websiteStatus, weights: s.settings.scoreWeights })
     const opp = analyzeOpportunity({
@@ -427,7 +427,7 @@ export class DiscoveryService {
       hasWhatsapp: false,
       hasInstagram: Boolean(business.instagram),
       hasFacebook: Boolean(business.facebook),
-      hasPhone: Boolean(finalPhone),
+      hasPhone: Boolean(phone),
       analysis: {
         positives: opp.reasons,
         problems: [],
