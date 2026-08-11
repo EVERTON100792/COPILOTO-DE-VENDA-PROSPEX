@@ -23,8 +23,8 @@ export class SearchAIAgent extends BaseAgent {
   protected async runCore(input: Record<string, unknown>, _ctx: AgentContext): Promise<SearchAIAgentOutput> {
     const { name, city, state, category } = input as unknown as SearchAIAgentInput
 
-    const systemPrompt = `Você é um agente de busca de dados empresariais ultra-preciso.
-Seu objetivo é extrair ou estimar os dados de contato (telefone, whatsapp e site) da empresa solicitada.
+    const systemPrompt = `Você é um agente de busca de dados empresariais ultra-preciso com acesso à internet.
+IMPORTANTE: VOCÊ DEVE USAR SUA FERRAMENTA DE BUSCA NA INTERNET (WEB SEARCH) AGORA MESMO para encontrar o Telefone/WhatsApp atualizado e o site oficial da empresa. Não confie apenas na sua memória de treinamento. Procure em redes sociais (Instagram/Facebook) ou guias locais.
 Se a empresa for muito famosa ou se tiver certeza dos dados, forneça-os.
 Retorne APENAS um JSON válido no seguinte formato exato, sem formatação Markdown (\`\`\`json):
 {
@@ -40,7 +40,7 @@ Retorne APENAS um JSON válido no seguinte formato exato, sem formatação Markd
       const raw = await callAI({
         systemPrompt,
         userMessage,
-        model: 'deepseek-v4-pro', // Exclusivo para busca, conforme solicitado
+        model: 'kimi-k3', // Kimi é otimizado para web search em tempo real
         temperature: 0.2,
       })
 
