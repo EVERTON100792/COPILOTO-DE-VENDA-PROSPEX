@@ -315,15 +315,15 @@ export interface Company {
   address: string | null
   phone: string | null
   whatsapp: string | null
-  email: string | null
-  website: string | null
-  instagram: string | null
-  facebook: string | null
-  rating: number | null
-  reviewCount: number | null
-  hours: string | null
-  summary: string | null
-  source: string | null
+  email?: string | null
+  website?: string | null
+  instagram?: string | null
+  facebook?: string | null
+  rating?: number | null
+  reviewCount?: number | null
+  hours?: string | null
+  summary?: string | null
+  source?: string | null
   isDemo: boolean
   createdAt: string
   /** Real Discovery (Fase 2) */
