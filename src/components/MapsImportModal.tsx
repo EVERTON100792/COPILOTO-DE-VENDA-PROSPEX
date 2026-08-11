@@ -151,23 +151,25 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
                 ×
               </button>
             </div>
-            <Button 
-              type="button" 
-              variant="primary" 
-              onClick={processImage} 
-              disabled={loadingImage || loading}
-              className="w-full py-4 text-base font-semibold shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all"
-            >
-              {loadingImage ? (
-                <span className="flex items-center justify-center gap-3">
-                  <span className="relative flex h-4 w-4">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-4 w-4 bg-white shadow-[0_0_10px_#fff]"></span>
-                  </span>
-                  <span className="font-bold tracking-widest animate-pulse drop-shadow-md">IA TRABALHANDO NOS DADOS...</span>
+            {loadingImage ? (
+              <div className="w-full py-4 rounded-xl flex items-center justify-center gap-3 bg-gradient-to-r from-purple-600 to-pink-500 shadow-[0_0_20px_rgba(168,85,247,0.6)] border border-white/20 transition-all">
+                <span className="relative flex h-4 w-4">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-4 w-4 bg-white shadow-[0_0_10px_#fff]"></span>
                 </span>
-              ) : '✨ Mágica: Extrair Dados com IA'}
-            </Button>
+                <span className="font-bold text-white tracking-widest animate-pulse drop-shadow-md">IA TRABALHANDO NOS DADOS...</span>
+              </div>
+            ) : (
+              <Button 
+                type="button" 
+                variant="primary" 
+                onClick={processImage} 
+                disabled={loading}
+                className="w-full py-4 text-base font-semibold shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all"
+              >
+                ✨ Mágica: Extrair Dados com IA
+              </Button>
+            )}
           </div>
         )}
 
@@ -235,17 +237,19 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
           <Button type="button" variant="secondary" onClick={onClose} disabled={loading || loadingImage}>
             Cancelar
           </Button>
-          <Button type="submit" variant="primary" disabled={loading || loadingImage || !name} className={loading ? "shadow-[0_0_15px_var(--primary)] transition-shadow duration-500" : ""}>
-            {loading ? (
-              <span className="flex items-center gap-2">
-                <svg className="animate-spin -ml-1 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <span className="font-semibold animate-pulse tracking-wide">CRIANDO PROSPECÇÃO...</span>
-              </span>
-            ) : 'Confirmar e Prospectar'}
-          </Button>
+          {loading ? (
+            <div className="flex items-center gap-2 px-6 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-500 shadow-[0_0_15px_rgba(168,85,247,0.5)] text-white">
+              <svg className="animate-spin -ml-1 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span className="font-semibold animate-pulse tracking-wide">CRIANDO PROSPECÇÃO...</span>
+            </div>
+          ) : (
+            <Button type="submit" variant="primary" disabled={loadingImage || !name}>
+              Confirmar e Prospectar
+            </Button>
+          )}
         </div>
       </form>
     </Modal>
