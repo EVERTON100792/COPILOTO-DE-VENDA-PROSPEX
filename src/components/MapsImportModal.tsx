@@ -372,14 +372,24 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
             </Field>
 
             <Field label="Avaliações (Google)">
-              <input
-                type="text"
-                value={rating}
-                onChange={(e) => setRating(e.target.value)}
-                className="input w-full bg-gray-900/50"
-                placeholder="Ex: 4.8"
-                disabled={loading}
-              />
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <input
+                  type="text"
+                  value={rating}
+                  onChange={(e) => setRating(e.target.value)}
+                  className="input w-full bg-gray-900/50"
+                  style={{ paddingRight: '100px' }}
+                  placeholder="Ex: 4.8"
+                  disabled={loading}
+                />
+                {rating && !isNaN(parseFloat(rating.replace(',', '.'))) && (
+                  <div style={{ position: 'absolute', right: '12px', display: 'flex', gap: '2px', fontSize: '13px', pointerEvents: 'none', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}>
+                    {Array.from({ length: Math.min(5, Math.round(parseFloat(rating.replace(',', '.')))) }).map((_, i) => (
+                      <span key={i}>⭐</span>
+                    ))}
+                  </div>
+                )}
+              </div>
             </Field>
           </div>
         </div>
