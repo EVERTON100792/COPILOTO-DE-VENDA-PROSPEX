@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Modal, Button, Field } from './ui'
 import { useApp } from '../services/store'
 import { importFromMaps, extractDataFromImage } from '../services/mapsImport'
@@ -115,11 +115,14 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
   
   const [extractedData, setExtractedData] = useState<any>(null)
 
+  const cancelRef = useRef(false)
+
   const toast = useApp(s => s.toast)
 
   // Reseta os estados quando o modal for fechado
   useEffect(() => {
     if (!open) {
+      cancelRef.current = true
       setName('')
       setCity('')
       setCategory('')
@@ -191,10 +194,13 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
   const processImage = async () => {
     if (!imagePreview) return
     
+    cancelRef.current = false
     setLoadingImage(true)
     try {
       toast('info', 'Analisando a imagem. Isso pode levar alguns segundos...')
       const data = await extractDataFromImage(imagePreview)
+      if (cancelRef.current) return
+      
       setName(data.name || '')
       setCity(data.city || '')
       setCategory(data.category || '')
@@ -216,11 +222,14 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
       return
     }
 
+    cancelRef.current = false
     setLoading(true)
     try {
       // Usa os dados extraídos, combinados com o que o usuário alterou nos inputs
       const submitData = extractedData ? { ...extractedData, name, city, category, phone, address } : undefined
       const result = await importFromMaps(name, city, '', submitData) 
+      if (cancelRef.current) return
+      
       if (result.success) {
         toast('success', `Empresa ${result.company?.name} cadastrada com sucesso!`)
         onClose()
@@ -271,7 +280,21 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
               </button>
             </div>
             {loadingImage ? (
-              <PipelineUI steps={IMAGE_STEPS} currentStep={imageStep} title="IA TRABALHANDO NOS DADOS..." />
+              <div className="flex flex-col items-center gap-4">
+                <PipelineUI steps={IMAGE_STEPS} currentStep={imageStep} title="IA TRABALHANDO NOS DADOS..." />
+                <button
+                  type="button"
+                  onClick={() => {
+                    cancelRef.current = true;
+                    setLoadingImage(false);
+                    setImageStep(0);
+                    toast('info', 'Extração cancelada.');
+                  }}
+                  className="text-gray-400 hover:text-white text-sm font-medium transition-colors underline decoration-gray-600 underline-offset-4"
+                >
+                  Cancelar extração
+                </button>
+              </div>
             ) : (
               <Button 
                 type="button" 
@@ -346,9 +369,23 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
           </div>
         </div>
 
-        <div className={`flex ${loading ? 'flex-col' : 'justify-end gap-3'} mt-8 pt-6 border-t border-gray-800/60`}>
+        <div className={`flex ${loading ? 'flex-col items-center' : 'justify-end gap-3'} mt-8 pt-6 border-t border-gray-800/60`}>
           {loading ? (
-            <PipelineUI steps={PROSPECT_STEPS} currentStep={prospectStep} title="CRIANDO PROSPECÇÃO..." />
+            <div className="flex flex-col items-center gap-4 w-full">
+              <PipelineUI steps={PROSPECT_STEPS} currentStep={prospectStep} title="CRIANDO PROSPECÇÃO..." />
+              <button
+                type="button"
+                onClick={() => {
+                  cancelRef.current = true;
+                  setLoading(false);
+                  setProspectStep(0);
+                  toast('info', 'Criação cancelada.');
+                }}
+                className="text-gray-400 hover:text-white text-sm font-medium transition-colors underline decoration-gray-600 underline-offset-4"
+              >
+                Cancelar processo
+              </button>
+            </div>
           ) : (
             <>
               <Button type="button" variant="secondary" onClick={onClose} disabled={loadingImage}>
