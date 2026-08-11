@@ -31,6 +31,8 @@ export interface Discovered {
   rating: number | null
   reviewCount: number | null
   hours: string | null
+  summary?: string | null
+  email?: string | null
   source: string | null
 }
 
