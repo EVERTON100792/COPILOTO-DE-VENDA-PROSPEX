@@ -22,7 +22,7 @@ import { findExistingBusiness } from '../services/deduplication'
 import { computeWebsiteQuality } from '../services/websiteQuality'
 import { analyzeOpportunity } from '../services/opportunity'
 import { computeScore } from '../agents/ScoringAgent'
-import { SearchAIAgent, type SearchAIAgentOutput } from '../agents/SearchAIAgent'
+import { searchCompanyData } from '../agents/SearchAIAgent'
 import { classifyScan, scanWebsite } from '../integrations/website'
 import { getDiscoveryProvider } from './registry'
 import type { DiscoveryProvider, ProviderBusiness } from './providers/types'
@@ -454,15 +454,12 @@ export class DiscoveryService {
     // Isso evita travar o loop de descoberta enquanto a IA navega na web.
     ;(async () => {
       try {
-        const searchAgent = new SearchAIAgent()
-        const aiData = await searchAgent.execute({
+        const out = await searchCompanyData({
           name: name.name,
-          city,
-          state,
-          category: business.category
-        }, {} as any)
-        
-        const out = aiData.output as SearchAIAgentOutput
+          city: city ?? '',
+          state: state ?? '',
+          category: business.category ?? ''
+        })
         const comp = useApp.getState().companies.find(c => c.id === companyId)
         if (comp) {
           const updates: Partial<Company> = {}
@@ -475,7 +472,7 @@ export class DiscoveryService {
           }
         }
       } catch (e) {
-        console.warn('[DiscoveryService] Erro no enriquecimento assíncrono com IA', e)
+        console.warn('[DiscoveryService] Erro no enriquecimento com Kimi', e)
       }
     })()
 

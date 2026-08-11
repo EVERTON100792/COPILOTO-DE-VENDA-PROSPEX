@@ -1,6 +1,4 @@
-import { BaseAgent } from './base'
 import { callAI } from '../services/aiClient'
-import type { AgentContext } from './types'
 
 export interface SearchAIAgentInput {
   name: string
@@ -16,46 +14,41 @@ export interface SearchAIAgentOutput {
   reviewCount: number | null
 }
 
-export class SearchAIAgent extends BaseAgent {
-  readonly name = 'SEARCH_AI_AGENT'
-  readonly description = 'Busca dados adicionais e corretos da empresa na internet'
+export async function searchCompanyData(input: SearchAIAgentInput): Promise<SearchAIAgentOutput> {
+  const { name, city, state, category } = input
 
-  protected async runCore(input: Record<string, unknown>, _ctx: AgentContext): Promise<SearchAIAgentOutput> {
-    const { name, city, state, category } = input as unknown as SearchAIAgentInput
-
-    const systemPrompt = `Você é um agente de busca de dados empresariais ultra-preciso com acesso à internet.
-IMPORTANTE: VOCÊ DEVE USAR SUA FERRAMENTA DE BUSCA NA INTERNET (WEB SEARCH) AGORA MESMO para encontrar o Telefone/WhatsApp atualizado e o site oficial da empresa. Não confie apenas na sua memória de treinamento. Procure em redes sociais (Instagram/Facebook) ou guias locais.
-Se a empresa for muito famosa ou se tiver certeza dos dados, forneça-os.
-Retorne APENAS um JSON válido no seguinte formato exato, sem formatação Markdown (\`\`\`json):
+  const systemPrompt = `Você é um agente de busca de dados empresariais com acesso à internet.
+IMPORTANTE: USE SUA CAPACIDADE DE BUSCA NA INTERNET para encontrar o Telefone/WhatsApp e o site oficial da empresa.
+Procure no Google, redes sociais (Instagram/Facebook), Google Maps ou guias locais.
+Retorne APENAS um JSON válido no seguinte formato (sem formatação Markdown):
 {
-  "phone": "+554399999999" ou null,
+  "phone": "+5543999990000" ou null,
   "website": "https://www.site.com.br" ou null,
   "rating": 4.8 ou null,
   "reviewCount": 120 ou null
 }`
 
-    const userMessage = `Empresa: ${name}\nCategoria: ${category || 'Local'}\nLocal: ${city}/${state || 'PR'}`
+  const userMessage = `Empresa: ${name}\nCategoria: ${category || 'Local'}\nLocal: ${city}/${state || 'PR'}\n\nBusque agora na internet o telefone/WhatsApp desta empresa.`
 
-    try {
-      const raw = await callAI({
-        systemPrompt,
-        userMessage,
-        model: 'kimi-k3', // Kimi é otimizado para web search em tempo real
-        temperature: 0.2,
-      })
+  try {
+    const raw = await callAI({
+      systemPrompt,
+      userMessage,
+      model: 'kimi-k3',
+      temperature: 0.1,
+    })
 
-      const cleaned = raw.replace(/```json\s*|```/g, '').trim()
-      const json = JSON.parse(cleaned)
-      
-      return {
-        phone: typeof json.phone === 'string' && json.phone.length > 5 ? json.phone : null,
-        website: typeof json.website === 'string' && json.website.includes('.') ? json.website : null,
-        rating: typeof json.rating === 'number' ? json.rating : null,
-        reviewCount: typeof json.reviewCount === 'number' ? json.reviewCount : null,
-      }
-    } catch (e) {
-      console.warn('[SearchAIAgent] Erro ao buscar dados via IA:', e)
-      return { phone: null, website: null, rating: null, reviewCount: null }
+    const cleaned = raw.replace(/```json\s*|```/g, '').trim()
+    const json = JSON.parse(cleaned)
+
+    return {
+      phone: typeof json.phone === 'string' && json.phone.length > 5 ? json.phone : null,
+      website: typeof json.website === 'string' && json.website.includes('.') ? json.website : null,
+      rating: typeof json.rating === 'number' ? json.rating : null,
+      reviewCount: typeof json.reviewCount === 'number' ? json.reviewCount : null,
     }
+  } catch (e) {
+    console.warn('[searchCompanyData] Erro ao buscar dados via IA:', e)
+    return { phone: null, website: null, rating: null, reviewCount: null }
   }
 }
