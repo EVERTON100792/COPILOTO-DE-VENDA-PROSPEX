@@ -17,9 +17,9 @@ export interface SearchAIAgentOutput {
 export async function searchCompanyData(input: SearchAIAgentInput): Promise<SearchAIAgentOutput> {
   const { name, city, state, category } = input
 
-  const systemPrompt = `Você é um agente de busca de dados empresariais com acesso à internet.
-IMPORTANTE: USE SUA CAPACIDADE DE BUSCA NA INTERNET para encontrar o Telefone/WhatsApp e o site oficial da empresa.
-Procure no Google, redes sociais (Instagram/Facebook), Google Maps ou guias locais.
+  const systemPrompt = `Você é um agente de busca de dados empresariais ultra-preciso.
+Seu objetivo é extrair ou estimar os dados de contato (telefone, whatsapp e site) da empresa solicitada.
+Se a empresa for muito famosa ou se tiver certeza dos dados, forneça-os.
 Retorne APENAS um JSON válido no seguinte formato (sem formatação Markdown):
 {
   "phone": "+5543999990000" ou null,
@@ -28,13 +28,13 @@ Retorne APENAS um JSON válido no seguinte formato (sem formatação Markdown):
   "reviewCount": 120 ou null
 }`
 
-  const userMessage = `Empresa: ${name}\nCategoria: ${category || 'Local'}\nLocal: ${city}/${state || 'PR'}\n\nBusque agora na internet o telefone/WhatsApp desta empresa.`
+  const userMessage = `Empresa: ${name}\nCategoria: ${category || 'Local'}\nLocal: ${city}/${state || 'PR'}`
 
   try {
     const raw = await callAI({
       systemPrompt,
       userMessage,
-      model: 'kimi-k3',
+      model: 'deepseek-v4-pro',
       temperature: 0.1,
     })
 
