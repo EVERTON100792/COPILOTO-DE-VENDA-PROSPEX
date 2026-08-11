@@ -92,6 +92,7 @@ export const OSM_CATEGORIES: OsmCategory[] = [
   { id: 'consultorias', label: 'Consultorias', keywords: ['consultoria', 'consultor', 'gestao'], tags: [{ key: 'office', value: 'consulting' }] },
   { id: 'fotografia', label: 'Fotografia', keywords: ['fotografia', 'fotografo', 'estudio fotografico'], tags: [{ key: 'craft', value: 'photographer' }] },
   { id: 'padarias', label: 'Padarias', keywords: ['padaria', 'panificadora', 'confeitaria'], tags: [{ key: 'shop', value: 'bakery' }] },
+  { id: 'igrejas', label: 'Igrejas', keywords: ['igreja', 'templo', 'paroquia', 'comunidade', 'religioso', 'religiosa', 'worship'], tags: [{ key: 'amenity', value: 'place_of_worship' }] },
 ]
 
 const FOLD = (s: string): string =>
@@ -109,7 +110,9 @@ export function resolveOsmCategory(segment: string): OsmCategory | null {
   for (const cat of OSM_CATEGORIES) {
     for (const kw of cat.keywords) {
       const k = FOLD(kw)
-      if (seg.includes(k) || k.includes(seg)) return cat
+      // Usar word boundaries (\b) para não casar "barbearia" com "bar"
+      const regex = new RegExp(`\\b${k}\\b`, 'i')
+      if (regex.test(seg) || k === seg) return cat
     }
   }
   return null

@@ -200,4 +200,6 @@ export const NICHES: string[] = [
   'Mercados',
   'Farmácias',
   'Consultorias',
+  'Igrejas',
+  'Padarias',
 ]

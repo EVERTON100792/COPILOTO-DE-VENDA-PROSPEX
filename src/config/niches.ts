@@ -210,6 +210,141 @@ export const NICHE_DNA: Record<string, NicheDna> = {
       'Posso fazer a demonstração'
     ),
   },
+  Igrejas: {
+    name: 'Igrejas',
+    icon: '⛪',
+    description: 'Igrejas e templos religiosos',
+    services: ['cultos', 'eventos', 'doações', 'comunidade'],
+    focus: 'comunicação com membros',
+    arguments: ['um site ajuda a igreja a se conectar com a comunidade'],
+    defaultOffer: offer(
+      'Site institucional',
+      497,
+      'Site com agenda de cultos e botão de doação',
+      'Maior alcance e facilidade para os membros',
+      'Posso preparar um modelo'
+    ),
+  },
+  Padarias: {
+    name: 'Padarias',
+    icon: '🥖',
+    description: 'Padarias e confeitarias',
+    services: ['encomendas', 'pães', 'bolos', 'salgados'],
+    focus: 'encomendas via WhatsApp',
+    arguments: ['facilita a vida de quem quer encomendar para festas'],
+    defaultOffer: offer(
+      'Catálogo online',
+      397,
+      'Cardápio digital com pedidos no WhatsApp',
+      'Mais encomendas organizadas',
+      'Posso mostrar como ficaria'
+    ),
+  },
+  'Pet shops': {
+    name: 'Pet shops',
+    icon: '🐾',
+    description: 'Pet shops e clínicas veterinárias',
+    services: ['banho e tosa', 'veterinário', 'rações', 'acessórios'],
+    focus: 'agendamento de banho e tosa',
+    arguments: ['os donos de pet amam praticidade para agendar'],
+    defaultOffer: offer(
+      'Site com agendamento',
+      497,
+      'Site com agendamento e catálogo de produtos',
+      'Mais clientes e organização de horários',
+      'Posso criar uma demonstração'
+    ),
+  },
+  Construtoras: {
+    name: 'Construtoras',
+    icon: '🏗️',
+    description: 'Construtoras e empreiteiras',
+    services: ['reformas', 'construção', 'projetos', 'orçamentos'],
+    focus: 'orçamento de obras',
+    arguments: ['um site passa a confiança que uma obra exige'],
+    defaultOffer: offer(
+      'Site profissional',
+      697,
+      'Site com portfólio de obras e formulário de orçamento',
+      'Mais pedidos de orçamentos qualificados',
+      'Posso preparar uma amostra'
+    ),
+  },
+  Mercados: {
+    name: 'Mercados',
+    icon: '🛒',
+    description: 'Supermercados e mercearias',
+    services: ['encartes', 'ofertas', 'delivery', 'açougue'],
+    focus: 'divulgação de ofertas e delivery',
+    arguments: ['clientes buscam ofertas e comodidade de entrega'],
+    defaultOffer: offer(
+      'Site de ofertas',
+      497,
+      'Site com encarte digital e link para delivery',
+      'Mais vendas online e divulgação de promoções',
+      'Posso demonstrar como ficaria'
+    ),
+  },
+  Farmácias: {
+    name: 'Farmácias',
+    icon: '💊',
+    description: 'Farmácias e drogarias',
+    services: ['medicamentos', 'perfumaria', 'delivery', 'manipulação'],
+    focus: 'delivery no WhatsApp',
+    arguments: ['na hora da urgência, a pessoa pesquisa a farmácia mais rápida'],
+    defaultOffer: offer(
+      'Site com catálogo rápido',
+      497,
+      'Site com contato rápido para delivery no WhatsApp',
+      'Mais pedidos de entrega',
+      'Preparo uma demonstração rápida'
+    ),
+  },
+  Consultorias: {
+    name: 'Consultorias',
+    icon: '💼',
+    description: 'Empresas de consultoria e gestão',
+    services: ['gestão', 'financeiro', 'RH', 'marketing'],
+    focus: 'captação de leads B2B',
+    arguments: ['autoridade é fundamental para vender consultoria'],
+    defaultOffer: offer(
+      'Site de autoridade',
+      697,
+      'Site institucional focado em captura de leads',
+      'Mais contatos B2B qualificados',
+      'Posso criar um modelo inicial'
+    ),
+  },
+  'Estética e beleza': {
+    name: 'Estética e beleza',
+    icon: '✨',
+    description: 'Clínicas de estética avançada',
+    services: ['botox', 'harmonização', 'depilação a laser', 'limpeza de pele'],
+    focus: 'agendamento de avaliações',
+    arguments: ['a estética vende pelo visual e confiança'],
+    defaultOffer: offer(
+      'Site de alta conversão',
+      597,
+      'Site com antes/depois e agendamento de avaliação',
+      'Mais avaliações agendadas',
+      'Preparo um modelo gratuito'
+    ),
+  },
+  Fotografia: {
+    name: 'Fotografia',
+    icon: '📷',
+    description: 'Fotógrafos e estúdios',
+    services: ['ensaios', 'casamentos', 'eventos', 'produtos'],
+    focus: 'portfólio visual',
+    arguments: ['o cliente precisa ver a qualidade das fotos de forma profissional'],
+    defaultOffer: offer(
+      'Portfólio online',
+      497,
+      'Site vitrine com álbuns otimizados',
+      'Mais pedidos de orçamento para eventos',
+      'Posso montar uma amostra do portfólio'
+    ),
+  },
 }
 
 export const NICHE_ICONS: Record<string, string> = {
@@ -233,7 +368,10 @@ export const NICHE_ICONS: Record<string, string> = {
   Mercados: '🛒',
   Farmácias: '💊',
   Consultorias: '💼',
+  Igrejas: '⛪',
+  Padarias: '🥖',
 }
+
 
 export function getNicheDna(name: string): NicheDna | null {
   return NICHE_DNA[name] ?? null
