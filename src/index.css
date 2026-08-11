@@ -741,3 +741,4 @@ table.data tr.clickable { cursor: pointer; }
   from { opacity: 0; }
   to { opacity: 1; }
 }
+@keyframes pulseDot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.8); } }

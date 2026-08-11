@@ -23,29 +23,31 @@ function PipelineUI({ steps, currentStep, title }: { steps: string[], currentSte
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', padding: '24px',
-      background: 'rgba(17, 24, 39, 0.95)', borderRadius: '16px',
-      border: '1px solid rgba(55, 65, 81, 0.6)', width: '100%',
-      boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1), 0 0 15px rgba(168, 85, 247, 0.15)',
+      background: 'var(--surface)', borderRadius: 'var(--radius)',
+      border: '1px solid var(--border)', width: '100%',
+      boxShadow: 'var(--shadow)',
+      backdropFilter: 'blur(12px)',
+      WebkitBackdropFilter: 'blur(12px)',
       transition: 'all 0.3s'
     }}>
       <div style={{
         display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px',
-        borderBottom: '1px solid rgba(31, 41, 55, 0.8)', paddingBottom: '16px'
+        borderBottom: '1px dashed var(--border-soft)', paddingBottom: '16px'
       }}>
         {/* Pulsing dot */}
-        <div style={{ position: 'relative', display: 'flex', width: '14px', height: '14px' }}>
+        <div style={{ position: 'relative', display: 'flex', width: '12px', height: '12px' }}>
           <div style={{
             position: 'absolute', width: '100%', height: '100%', borderRadius: '50%',
-            background: 'var(--primary)', opacity: 0.75, animation: 'slideIn 2s ease infinite'
+            background: 'var(--primary)', opacity: 0.75, animation: 'pulseDot 2s ease-in-out infinite'
           }}></div>
           <div style={{
-            position: 'relative', width: '14px', height: '14px', borderRadius: '50%',
-            background: 'var(--primary)', boxShadow: '0 0 10px var(--primary)'
+            position: 'relative', width: '12px', height: '12px', borderRadius: '50%',
+            background: 'var(--primary)', boxShadow: 'var(--primary-glow)'
           }}></div>
         </div>
         <span style={{
-          color: '#fff', fontWeight: 800, letterSpacing: '0.15em', fontSize: '14px',
-          textShadow: '0 2px 4px rgba(0,0,0,0.5)'
+          color: 'var(--text)', fontWeight: 700, letterSpacing: '0.1em', fontSize: '13px',
+          textTransform: 'uppercase', textShadow: '0 2px 4px rgba(0,0,0,0.5)'
         }}>
           {title}
         </span>
@@ -58,29 +60,29 @@ function PipelineUI({ steps, currentStep, title }: { steps: string[], currentSte
           return (
             <div key={index} style={{
               display: 'flex', alignItems: 'center', gap: '16px',
-              transition: 'all 0.7s ease-out',
-              opacity: isDone || isActive ? 1 : 0.3,
-              transform: isDone || isActive ? 'translateX(0)' : 'translateX(-16px)'
+              transition: 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+              opacity: isDone || isActive ? 1 : 0.4,
+              transform: isDone || isActive ? 'translateX(0)' : 'translateX(-12px)'
             }}>
               <div style={{
-                width: '32px', height: '32px', borderRadius: '50%', display: 'flex',
+                width: '28px', height: '28px', borderRadius: '50%', display: 'flex',
                 alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                border: '2px solid', transition: 'all 0.5s',
+                border: '2px solid', transition: 'all 0.5s', fontSize: '13px', fontWeight: 600,
                 ...(isDone 
-                  ? { background: 'rgba(34, 197, 94, 0.1)', borderColor: 'rgb(34, 197, 94)', color: 'rgb(74, 222, 128)', boxShadow: '0 0 10px rgba(34,197,94,0.3)' } 
+                  ? { background: 'var(--success-soft)', borderColor: 'var(--success)', color: 'var(--success)', boxShadow: '0 0 12px rgba(16, 185, 129, 0.2)' } 
                   : isActive
-                  ? { background: 'rgba(168, 85, 247, 0.2)', borderColor: 'var(--primary)', color: 'var(--primary)', boxShadow: '0 0 15px var(--primary)', transform: 'scale(1.1)' }
-                  : { background: 'rgba(31, 41, 55, 1)', borderColor: 'rgba(55, 65, 81, 1)', color: 'rgba(107, 114, 128, 1)' })
+                  ? { background: 'var(--primary-soft)', borderColor: 'var(--primary)', color: 'var(--text)', boxShadow: 'var(--primary-glow)', transform: 'scale(1.15)' }
+                  : { background: 'transparent', borderColor: 'var(--border)', color: 'var(--muted)' })
               }}>
                 {isDone ? '✓' : isActive ? '⚡' : (index + 1)}
               </div>
               <span style={{
-                fontSize: '15px', fontWeight: 500, transition: 'color 0.5s',
+                fontSize: '14px', fontWeight: isActive ? 600 : 500, transition: 'color 0.5s',
                 ...(isDone
-                  ? { color: 'rgba(156, 163, 175, 1)' }
+                  ? { color: 'var(--muted)' }
                   : isActive
-                  ? { color: '#fff', textShadow: '0 0 8px rgba(255,255,255,0.6)' }
-                  : { color: 'rgba(75, 85, 99, 1)' })
+                  ? { color: 'var(--text)', textShadow: '0 0 10px rgba(255,255,255,0.3)' }
+                  : { color: 'var(--muted-2)' })
               }}>
                 {step}
               </span>
