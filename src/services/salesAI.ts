@@ -107,9 +107,7 @@ INSTRUÇÕES:
   try {
     const raw = await callAI({
       systemPrompt: system,
-      userMessage: "Gere a mensagem inicial de prospecção para esta empresa agora. Use um tom ultra natural e humano, como se estivesse digitando no WhatsApp agora.",
-      model: 'gpt-5.6-luna',
-      temperature: 0.7,
+      userMessage: "Gere a mensagem inicial de prospecção para esta empresa agora.",
     })
     return raw.trim() || `[IA retornou vazio] ${generateOpeningMessage(company)}`
   } catch (err: any) {
@@ -275,8 +273,6 @@ Retorne EXATAMENTE no formato JSON válido:
     const raw = await callAI({
       systemPrompt,
       userMessage: `Empresa: ${company?.name || 'Empresa'} (${company?.category || 'Negócio Local'} em ${company?.city || 'Rolândia'})\nResposta enviada pelo cliente no WhatsApp: "${response}"`,
-      model: 'gpt-5.6-luna',
-      temperature: 0.7,
     })
 
     const cleaned = raw.replace(/```json\s*|```/g, '').trim()

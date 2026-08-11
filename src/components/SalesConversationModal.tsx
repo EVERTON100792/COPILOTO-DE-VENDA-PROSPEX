@@ -89,7 +89,7 @@ export const SalesConversationModal: React.FC<Props> = ({ open, company, leadId,
   const [openingMessage, setOpeningMessage] = useState('')
 
   const apiKey = settings.aiApiKey || (import.meta.env.VITE_AI_API_KEY as string | undefined) || ''
-  const providerLabel = "OpenCode Go (gpt-5.6-luna)"
+  const providerLabel = "OpenCode Go (deepseek-v4-pro)"
 
   React.useEffect(() => {
     if (open && company) {
