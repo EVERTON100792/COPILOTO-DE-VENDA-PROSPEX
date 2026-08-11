@@ -22,6 +22,7 @@ import { findExistingBusiness } from '../services/deduplication'
 import { computeWebsiteQuality } from '../services/websiteQuality'
 import { analyzeOpportunity } from '../services/opportunity'
 import { computeScore } from '../agents/ScoringAgent'
+import { SearchAIAgent, type SearchAIAgentOutput } from '../agents/SearchAIAgent'
 import { classifyScan, scanWebsite } from '../integrations/website'
 import { getDiscoveryProvider } from './registry'
 import type { DiscoveryProvider, ProviderBusiness } from './providers/types'
@@ -292,6 +293,27 @@ export class DiscoveryService {
       return
     }
 
+    // --- ENRIQUECIMENTO COM IA ---
+    let finalPhone = phone
+    let finalWebsite = website
+    try {
+      const searchAgent = new SearchAIAgent()
+      const aiData = await searchAgent.execute({
+        name: name.name,
+        city,
+        state,
+        category: business.category
+      }, {} as any)
+      
+      const out = aiData.output as SearchAIAgentOutput
+      if (out.phone && !finalPhone) finalPhone = out.phone
+      if (out.website && !finalWebsite) finalWebsite = out.website
+      if (out.rating && !business.rating) business.rating = out.rating
+      if (out.reviewCount && !business.reviewCount) business.reviewCount = out.reviewCount
+    } catch (e) {
+      console.warn('[DiscoveryService] Erro ao enriquecer com IA', e)
+    }
+
     const company: Company = {
       id: uid('cmp'),
       workspaceId: s.workspaceId,
@@ -301,10 +323,10 @@ export class DiscoveryService {
       state,
       country: business.country ?? 'BR',
       address: business.address,
-      phone,
+      phone: finalPhone,
       whatsapp: null,
       email: null,
-      website,
+      website: finalWebsite,
       instagram: business.instagram,
       facebook: business.facebook,
       rating: business.rating,
@@ -323,7 +345,7 @@ export class DiscoveryService {
       rawDataId: rawId,
       discoveryConfidence: validation.confidence,
       confidenceReasons: validation.reasons,
-      phoneNormalized: phone,
+      phoneNormalized: finalPhone,
       phoneCountry: 'BR',
       phoneType: 'mobile',
       whatsappStatus: 'UNKNOWN',
@@ -338,10 +360,10 @@ export class DiscoveryService {
     let websiteQuality: number | null = null
     let websiteFactors: import('../types').ScoreBreakdown[] | null = null
     let websiteScan: WebsiteScan | null = null
-    if (website && scanBudget.remaining > 0) {
+    if (finalWebsite && scanBudget.remaining > 0) {
       scanBudget.remaining -= 1
       const race = await Promise.race([
-        scanWebsite(website),
+        scanWebsite(finalWebsite),
         delay(SCAN_TIMEOUT_MS).then(() => null),
       ])
       if (race) {
@@ -370,7 +392,7 @@ export class DiscoveryService {
           checkedAt: race.checkedAt,
         }
       }
-      company.website = website
+      company.website = finalWebsite
       company.websiteQualityScore = websiteQuality
       company.websiteQualityFactors = websiteFactors
       company.websiteCheckedAt = nowIso()
@@ -384,9 +406,9 @@ export class DiscoveryService {
       city,
       state,
       address: business.address,
-      phone,
+      phone: finalPhone,
       whatsapp: null,
-      website,
+      website: finalWebsite,
       instagram: business.instagram,
       facebook: business.facebook,
       rating: business.rating,
@@ -394,9 +416,9 @@ export class DiscoveryService {
       hours: business.hours,
       source: business.provider,
       normalizedName: name.name,
-      normalizedPhone: phone,
-      domain: hostnameOf(website),
-      complete: Boolean(name.name && (phone || website)),
+      normalizedPhone: finalPhone,
+      domain: hostnameOf(finalWebsite),
+      complete: Boolean(name.name && (finalPhone || finalWebsite)),
     }
     const score = computeScore({ company: normalized, websiteStatus, weights: s.settings.scoreWeights })
     const opp = analyzeOpportunity({
@@ -425,7 +447,7 @@ export class DiscoveryService {
       hasWhatsapp: false,
       hasInstagram: Boolean(business.instagram),
       hasFacebook: Boolean(business.facebook),
-      hasPhone: Boolean(phone),
+      hasPhone: Boolean(finalPhone),
       analysis: {
         positives: opp.reasons,
         problems: [],

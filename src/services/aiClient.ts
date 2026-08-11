@@ -134,9 +134,9 @@ export async function callAI(options: AIClientOptions): Promise<string> {
     provider === 'openai' ? OPENAI_MODELS :
     OPENCODE_MODELS
 
-  const modelsToTry = preferredModel
-    ? [preferredModel]
-    : defaultModels
+  const modelsToTry = options.model
+    ? [options.model]
+    : (preferredModel ? [preferredModel] : defaultModels)
 
   const headers: Record<string, string> = {
     Authorization: `Bearer ${apiKey}`,

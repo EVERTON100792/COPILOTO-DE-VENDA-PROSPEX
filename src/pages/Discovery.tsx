@@ -219,13 +219,13 @@ export default function Discovery() {
                     </div>
 
                     {/* Info */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, color: 'var(--muted)', marginBottom: 12 }}>
-                      {company.city && <span>📍 {company.city}{company.state ? `/${company.state}` : ''}</span>}
-                      {company.phone && <span>📞 {company.phone}</span>}
-                      {company.rating && <span>⭐ {company.rating.toFixed(1)} ({company.reviewCount || 0} avaliações)</span>}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12, color: 'var(--muted)', marginBottom: 12 }}>
+                      {company.city && <span style={{ display: 'flex', gap: 6 }}><span style={{ color: 'var(--primary)' }}>📍</span> {company.city}{company.state ? `/${company.state}` : ''}</span>}
+                      {company.phone && <span style={{ display: 'flex', gap: 6 }}><span style={{ color: 'var(--success)' }}>💬</span> {company.phone}</span>}
+                      {company.rating && <span style={{ display: 'flex', gap: 6 }}><span style={{ color: 'var(--warning)' }}>⭐</span> {company.rating.toFixed(1)} ({company.reviewCount || 0} avaliações)</span>}
                       {company.website && (
-                        <a href={company.website} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          🌐 {company.website}
+                        <a href={company.website} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--info)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', gap: 6 }}>
+                          <span>🌐</span> {company.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}
                         </a>
                       )}
                     </div>
@@ -240,14 +240,26 @@ export default function Discovery() {
 
                   {/* CTA */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      style={{ width: '100%' }}
-                      onClick={() => handleProspectar(company)}
-                    >
-                      {contactedCompanyIds.has(company.id) ? '💬 Continuar Conversa' : '⚡ Prospectar IA'}
-                    </Button>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        style={{ flex: 1 }}
+                        onClick={() => handleProspectar(company)}
+                      >
+                        {contactedCompanyIds.has(company.id) ? '💬 Continuar Conversa' : '⚡ Prospectar IA'}
+                      </Button>
+                      <a 
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(company.name + ' ' + (company.city || ''))}`}
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="btn btn-secondary btn-sm"
+                        style={{ padding: '6px 10px' }}
+                        title="Ver no Google Maps"
+                      >
+                        🗺️
+                      </a>
+                    </div>
                     {hasLead && (
                       <div style={{ fontSize: 11, color: 'var(--success)', textAlign: 'center' }}>
                         ✓ Lead já cadastrado
