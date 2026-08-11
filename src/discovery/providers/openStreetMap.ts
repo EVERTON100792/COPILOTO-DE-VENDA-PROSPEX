@@ -69,7 +69,7 @@ export interface OsmCategory {
  * (ex.: leisure=fitness_centre).
  */
 export const OSM_CATEGORIES: OsmCategory[] = [
-  { id: 'odontologia', label: 'Odontologia', keywords: ['dentista', 'odontolog', 'clinica odontologica', 'ortodontia', 'dental'], tags: [{ key: 'amenity', value: 'dentist' }] },
+  { id: 'odontologia', label: 'Odontologia', keywords: ['odontologia', 'dentista', 'odontolog', 'clinica odontologica', 'ortodontia', 'dental'], tags: [{ key: 'amenity', value: 'dentist' }] },
   { id: 'restaurantes', label: 'Restaurantes', keywords: ['restaurante', 'pizzaria', 'pizza', 'hamburgueria', 'churrascaria', 'comida', 'gastronomia'], tags: [{ key: 'amenity', value: 'restaurant' }] },
   { id: 'cafes', label: 'Cafés', keywords: ['cafe', 'cafeteria', 'coffee', 'confeitaria'], tags: [{ key: 'amenity', value: 'cafe' }] },
   { id: 'bares', label: 'Bares e pubs', keywords: ['bar', 'boteco', 'pub', 'cervejaria'], tags: [{ key: 'amenity', value: 'bar' }, { key: 'amenity', value: 'pub' }] },
