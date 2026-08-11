@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { Modal, Button, Field } from './ui'
 import { useApp } from '../services/store'
 import { importFromMaps, extractDataFromImage } from '../services/mapsImport'
@@ -22,7 +22,6 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
   const [extractedData, setExtractedData] = useState<any>(null)
 
   const toast = useApp(s => s.toast)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Reseta os estados quando o modal for fechado
   useEffect(() => {
@@ -124,35 +123,26 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
             A IA analisará sua imagem para extrair os dados automaticamente.
           </p>
           <p className="text-sm text-gray-500">
-            Cole um print com <kbd className="bg-gray-800 border border-gray-700 px-1.5 py-0.5 rounded text-xs">Ctrl+V</kbd> ou clique para enviar uma foto (Google Maps, sites, cartões).
+            Copie qualquer imagem (Google Maps, sites, cartões) e pressione <kbd className="bg-gray-800 border border-gray-700 px-1.5 py-0.5 rounded text-xs">Ctrl+V</kbd> nesta tela.
           </p>
         </div>
         
         {!imagePreview ? (
           <div 
-            className="group relative overflow-hidden border-2 border-dashed border-gray-700 hover:border-primary/60 hover:bg-primary/5 transition-all duration-300 rounded-2xl p-12 flex flex-col items-center justify-center cursor-pointer bg-gray-900/60 shadow-inner"
-            onClick={() => fileInputRef.current?.click()}
+            className="group relative overflow-hidden border-2 border-dashed border-gray-700 bg-gray-900/60 transition-all duration-300 rounded-2xl p-12 flex flex-col items-center justify-center shadow-inner"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <div className="bg-gray-800 p-4 rounded-full shadow-xl mb-4 group-hover:scale-110 transition-transform duration-300 border border-gray-700">
-              <span className="text-4xl block translate-y-px">📸</span>
+              <span className="text-4xl block translate-y-px">📋</span>
             </div>
-            <span className="text-gray-300 font-medium text-lg">Clique aqui para enviar</span>
-            <span className="text-gray-500 text-sm mt-1">ou pressione Ctrl+V para colar um print</span>
+            <span className="text-gray-300 font-medium text-lg text-center leading-relaxed">
+              Pressione <kbd className="bg-gray-800 border border-gray-700 px-1.5 py-0.5 rounded text-sm text-primary mx-1">Ctrl+V</kbd><br/> para colar o print aqui
+            </span>
           </div>
         ) : (
           <div className="space-y-4">
             <div className="relative rounded-2xl overflow-hidden border border-gray-700 bg-black/40 flex items-center justify-center h-48 shadow-lg ring-1 ring-white/5">
               <img src={imagePreview} alt="Preview" className="max-h-full max-w-full object-contain drop-shadow-xl" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 hover:opacity-100 transition-opacity flex items-end justify-center pb-4">
-                <button 
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
-                  className="bg-gray-800/90 hover:bg-gray-700 text-white text-sm px-4 py-2 rounded-full backdrop-blur transition-colors border border-gray-600"
-                >
-                  Trocar imagem
-                </button>
-              </div>
               <button 
                 type="button"
                 onClick={() => setImagePreview(null)}
@@ -249,20 +239,6 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
             {loading ? 'Processando...' : 'Confirmar e Prospectar'}
           </Button>
         </div>
-
-        {/* File input invisível global para o componente */}
-        <input 
-          type="file" 
-          accept="image/*" 
-          className="hidden" 
-          style={{ display: 'none' }}
-          ref={fileInputRef}
-          onChange={(e) => {
-            const file = e.target.files?.[0]
-            if (file) handleImageFile(file)
-            if (fileInputRef.current) fileInputRef.current.value = ''
-          }}
-        />
       </form>
     </Modal>
   )
