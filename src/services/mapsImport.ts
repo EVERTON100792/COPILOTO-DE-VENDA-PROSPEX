@@ -122,15 +122,24 @@ export async function extractDataFromImage(base64Image: string): Promise<Extract
   const { callAI } = await import('./aiClient')
   const Tesseract = await import('tesseract.js')
   
-  // 1. Extração de texto via OCR (Visão local no navegador)
+  // 1. Extração de texto via OCR com Timeout (15 segundos max)
   let extractedText = ''
   try {
-    const result = await Tesseract.recognize(base64Image, 'por', {
+    const ocrPromise = Tesseract.recognize(base64Image, 'por', {
       logger: m => console.log(m)
     })
+    
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('TIMEOUT_OCR')), 15000)
+    })
+
+    const result = await Promise.race([ocrPromise, timeoutPromise]) as any
     extractedText = result.data.text
-  } catch (err) {
+  } catch (err: any) {
     console.error('Erro no OCR via Tesseract:', err)
+    if (err.message === 'TIMEOUT_OCR') {
+      throw new Error('A análise demorou muito. Por favor, recorte apenas a área com os dados da empresa e tente colar novamente.')
+    }
     throw new Error('Falha ao ler o texto da imagem. Tente uma imagem mais nítida.')
   }
 
