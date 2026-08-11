@@ -21,32 +21,67 @@ const PROSPECT_STEPS = [
 
 function PipelineUI({ steps, currentStep, title }: { steps: string[], currentStep: number, title: string }) {
   return (
-    <div className="flex flex-col p-6 bg-gray-900/90 rounded-2xl border border-gray-700/60 shadow-2xl shadow-primary/10 w-full transition-all duration-300">
-      <div className="flex items-center gap-3 mb-5 border-b border-gray-800/80 pb-4">
-        <span className="relative flex h-3.5 w-3.5">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-primary shadow-[0_0_10px_var(--primary)]"></span>
+    <div style={{
+      display: 'flex', flexDirection: 'column', padding: '24px',
+      background: 'rgba(17, 24, 39, 0.95)', borderRadius: '16px',
+      border: '1px solid rgba(55, 65, 81, 0.6)', width: '100%',
+      boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1), 0 0 15px rgba(168, 85, 247, 0.15)',
+      transition: 'all 0.3s'
+    }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px',
+        borderBottom: '1px solid rgba(31, 41, 55, 0.8)', paddingBottom: '16px'
+      }}>
+        {/* Pulsing dot */}
+        <div style={{ position: 'relative', display: 'flex', width: '14px', height: '14px' }}>
+          <div style={{
+            position: 'absolute', width: '100%', height: '100%', borderRadius: '50%',
+            background: 'var(--primary)', opacity: 0.75, animation: 'slideIn 2s ease infinite'
+          }}></div>
+          <div style={{
+            position: 'relative', width: '14px', height: '14px', borderRadius: '50%',
+            background: 'var(--primary)', boxShadow: '0 0 10px var(--primary)'
+          }}></div>
+        </div>
+        <span style={{
+          color: '#fff', fontWeight: 800, letterSpacing: '0.15em', fontSize: '14px',
+          textShadow: '0 2px 4px rgba(0,0,0,0.5)'
+        }}>
+          {title}
         </span>
-        <span className="text-white font-bold tracking-[0.15em] text-sm drop-shadow-md">{title}</span>
       </div>
-      <div className="flex flex-col gap-4">
+      
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {steps.map((step, index) => {
           const isActive = index === currentStep;
           const isDone = index < currentStep;
           return (
-            <div key={index} className={`flex items-center gap-4 transition-all duration-700 ease-out ${isDone || isActive ? 'opacity-100 translate-x-0' : 'opacity-20 -translate-x-4'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border-2 transition-all duration-500 ${
-                isDone ? 'bg-green-500/10 border-green-500 text-green-400 shadow-[0_0_10px_rgba(34,197,94,0.3)]' : 
-                isActive ? 'bg-primary/20 border-primary text-primary shadow-[0_0_15px_var(--primary)] scale-110' : 
-                'bg-gray-800 border-gray-700 text-gray-500'
-              }`}>
+            <div key={index} style={{
+              display: 'flex', alignItems: 'center', gap: '16px',
+              transition: 'all 0.7s ease-out',
+              opacity: isDone || isActive ? 1 : 0.3,
+              transform: isDone || isActive ? 'translateX(0)' : 'translateX(-16px)'
+            }}>
+              <div style={{
+                width: '32px', height: '32px', borderRadius: '50%', display: 'flex',
+                alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                border: '2px solid', transition: 'all 0.5s',
+                ...(isDone 
+                  ? { background: 'rgba(34, 197, 94, 0.1)', borderColor: 'rgb(34, 197, 94)', color: 'rgb(74, 222, 128)', boxShadow: '0 0 10px rgba(34,197,94,0.3)' } 
+                  : isActive
+                  ? { background: 'rgba(168, 85, 247, 0.2)', borderColor: 'var(--primary)', color: 'var(--primary)', boxShadow: '0 0 15px var(--primary)', transform: 'scale(1.1)' }
+                  : { background: 'rgba(31, 41, 55, 1)', borderColor: 'rgba(55, 65, 81, 1)', color: 'rgba(107, 114, 128, 1)' })
+              }}>
                 {isDone ? '✓' : isActive ? '⚡' : (index + 1)}
               </div>
-              <span className={`text-[15px] font-medium transition-colors duration-500 ${
-                isDone ? 'text-gray-400' : 
-                isActive ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]' : 
-                'text-gray-600'
-              }`}>
+              <span style={{
+                fontSize: '15px', fontWeight: 500, transition: 'color 0.5s',
+                ...(isDone
+                  ? { color: 'rgba(156, 163, 175, 1)' }
+                  : isActive
+                  ? { color: '#fff', textShadow: '0 0 8px rgba(255,255,255,0.6)' }
+                  : { color: 'rgba(75, 85, 99, 1)' })
+              }}>
                 {step}
               </span>
             </div>
