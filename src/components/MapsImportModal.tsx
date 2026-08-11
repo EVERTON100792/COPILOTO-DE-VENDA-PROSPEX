@@ -9,8 +9,6 @@ interface MapsImportModalProps {
 }
 
 export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
-  const [mode, setMode] = useState<'url' | 'print'>('url')
-  const [url, setUrl] = useState('')
   const [name, setName] = useState('')
   const [city, setCity] = useState('')
   const [category, setCategory] = useState('')
@@ -29,7 +27,6 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
   // Reseta os estados quando o modal for fechado
   useEffect(() => {
     if (!open) {
-      setUrl('')
       setName('')
       setCity('')
       setCategory('')
@@ -37,51 +34,14 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
       setAddress('')
       setImagePreview(null)
       setExtractedData(null)
-      setMode('url')
       setLoading(false)
       setLoadingImage(false)
     }
   }, [open])
 
-  // Extrai NOME e LAT/LON de URLs do Maps
-  useEffect(() => {
-    if (!url || mode !== 'url') return
-
-    try {
-      const parsedUrl = new URL(url)
-      if (parsedUrl.hostname.includes('google.com') && parsedUrl.pathname.includes('/maps/place/')) {
-        const parts = parsedUrl.pathname.split('/')
-        const placeIndex = parts.indexOf('place')
-        if (placeIndex !== -1 && parts.length > placeIndex + 1) {
-          const rawName = parts[placeIndex + 1]
-          if (rawName) {
-            setName(decodeURIComponent(rawName.replace(/\+/g, ' ')))
-          }
-        }
-
-        const coordsMatch = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/)
-        if (coordsMatch) {
-          const lat = coordsMatch[1]
-          const lon = coordsMatch[2]
-          fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`)
-            .then(res => res.json())
-            .then(data => {
-              if (data && data.address) {
-                const foundCity = data.address.city || data.address.town || data.address.village || data.address.municipality
-                if (foundCity) setCity(foundCity)
-              }
-            })
-            .catch(() => {})
-        }
-      }
-    } catch (e) {
-      // url inválida, ignora
-    }
-  }, [url, mode])
-
   // Lida com colar imagem no modal
   useEffect(() => {
-    if (!open || mode !== 'print') return
+    if (!open) return
 
     const handlePaste = (e: ClipboardEvent) => {
       const items = e.clipboardData?.items
@@ -98,7 +58,7 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
 
     document.addEventListener('paste', handlePaste)
     return () => document.removeEventListener('paste', handlePaste)
-  }, [open, mode])
+  }, [open])
 
   const handleImageFile = (file: File) => {
     const reader = new FileReader()
@@ -142,7 +102,7 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
     try {
       // Usa os dados extraídos, combinados com o que o usuário alterou nos inputs
       const submitData = extractedData ? { ...extractedData, name, city, category, phone, address } : undefined
-      const result = await importFromMaps(name, city, url, submitData) 
+      const result = await importFromMaps(name, city, '', submitData) 
       if (result.success) {
         toast('success', `Empresa ${result.company?.name} cadastrada com sucesso!`)
         onClose()
@@ -156,105 +116,98 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
     }
   }
 
-  const isShortUrl = url.includes('maps.app.goo.gl')
-
   return (
-    <Modal open={open} onClose={onClose} title="Cadastrar Empresa">
-      <div className="flex gap-4 mb-6 border-b border-gray-800 pb-2">
-        <button 
-          className={`pb-2 px-2 font-medium text-sm transition-colors ${mode === 'url' ? 'text-primary border-b-2 border-primary' : 'text-gray-400 hover:text-gray-200'}`}
-          onClick={() => setMode('url')}
-        >
-          Usar URL do Maps
-        </button>
-        <button 
-          className={`pb-2 px-2 font-medium text-sm transition-colors ${mode === 'print' ? 'text-primary border-b-2 border-primary' : 'text-gray-400 hover:text-gray-200'}`}
-          onClick={() => setMode('print')}
-        >
-          Extrair de Print (IA)
-        </button>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {mode === 'url' ? (
-          <>
-            <p className="text-sm text-gray-400 mb-4">
-              Cole a URL do Google Maps. O sistema preencherá os dados iniciais automaticamente.
-            </p>
-            <Field label="URL do Google Maps">
-              <input
-                type="url"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                className="input w-full"
-                placeholder="https://www.google.com/maps/place/..."
-                disabled={loading}
-              />
-            </Field>
-
-            {isShortUrl && (
-              <div className="bg-yellow-500/10 border border-yellow-500/30 text-yellow-500 p-3 rounded text-sm mb-2">
-                <strong>Link Curto Detectado:</strong> Por favor, preencha o Nome e a Cidade manualmente abaixo.
-              </div>
-            )}
-          </>
+    <Modal open={open} onClose={onClose} title="Extração Inteligente de Empresa" wide>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="text-center space-y-2 mb-6">
+          <p className="text-gray-300">
+            A IA analisará sua imagem para extrair os dados automaticamente.
+          </p>
+          <p className="text-sm text-gray-500">
+            Cole um print com <kbd className="bg-gray-800 border border-gray-700 px-1.5 py-0.5 rounded text-xs">Ctrl+V</kbd> ou clique para enviar uma foto (Google Maps, sites, cartões).
+          </p>
+        </div>
+        
+        {!imagePreview ? (
+          <div 
+            className="group relative overflow-hidden border-2 border-dashed border-gray-700 hover:border-primary/60 hover:bg-primary/5 transition-all duration-300 rounded-2xl p-12 flex flex-col items-center justify-center cursor-pointer bg-gray-900/60 shadow-inner"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <input 
+              type="file" 
+              accept="image/*" 
+              className="hidden" 
+              ref={fileInputRef}
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) handleImageFile(file)
+              }}
+            />
+            <div className="bg-gray-800 p-4 rounded-full shadow-xl mb-4 group-hover:scale-110 transition-transform duration-300 border border-gray-700">
+              <span className="text-4xl block translate-y-px">📸</span>
+            </div>
+            <span className="text-gray-300 font-medium text-lg">Clique aqui para enviar</span>
+            <span className="text-gray-500 text-sm mt-1">ou pressione Ctrl+V para colar um print</span>
+          </div>
         ) : (
-          <>
-            <p className="text-sm text-gray-400 mb-4">
-              Cole um print (Ctrl+V) de um perfil de empresa ou clique para enviar uma foto.
-            </p>
-            
-            {!imagePreview ? (
-              <div 
-                className="border-2 border-dashed border-gray-700 hover:border-primary/50 transition-colors rounded-lg p-8 flex flex-col items-center justify-center cursor-pointer bg-gray-900/50"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  className="hidden" 
-                  ref={fileInputRef}
-                  onChange={(e) => {
-                    const file = e.target.files?.[0]
-                    if (file) handleImageFile(file)
-                  }}
-                />
-                <span className="text-2xl mb-2">📸</span>
-                <span className="text-gray-400 font-medium">Clique ou cole (Ctrl+V) a imagem aqui</span>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <div className="relative rounded-lg overflow-hidden border border-gray-700 bg-gray-900 flex items-center justify-center h-48">
-                  <img src={imagePreview} alt="Preview" className="max-h-full max-w-full object-contain" />
-                  <button 
-                    type="button"
-                    onClick={() => setImagePreview(null)}
-                    className="absolute top-2 right-2 bg-red-500/80 hover:bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center transition-colors"
-                  >
-                    ×
-                  </button>
-                </div>
-                <Button 
-                  type="button" 
-                  variant="secondary" 
-                  onClick={processImage} 
-                  disabled={loadingImage || loading}
-                  className="w-full"
+          <div className="space-y-4">
+            <div className="relative rounded-2xl overflow-hidden border border-gray-700 bg-black/40 flex items-center justify-center h-64 shadow-lg ring-1 ring-white/5">
+              <img src={imagePreview} alt="Preview" className="max-h-full max-w-full object-contain drop-shadow-xl" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 hover:opacity-100 transition-opacity flex items-end justify-center pb-4">
+                <button 
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+                  className="bg-gray-800/90 hover:bg-gray-700 text-white text-sm px-4 py-2 rounded-full backdrop-blur transition-colors border border-gray-600"
                 >
-                  {loadingImage ? 'Analisando com IA...' : '✨ Extrair Dados com IA'}
-                </Button>
+                  Trocar imagem
+                </button>
               </div>
-            )}
-          </>
+              <button 
+                type="button"
+                onClick={() => setImagePreview(null)}
+                className="absolute top-3 right-3 bg-red-500/90 hover:bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center transition-colors shadow-lg"
+              >
+                ×
+              </button>
+              <input 
+                type="file" 
+                accept="image/*" 
+                className="hidden" 
+                ref={fileInputRef}
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) handleImageFile(file)
+                }}
+              />
+            </div>
+            <Button 
+              type="button" 
+              variant="primary" 
+              onClick={processImage} 
+              disabled={loadingImage || loading}
+              className="w-full py-4 text-base font-semibold shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all"
+            >
+              {loadingImage ? (
+                <span className="flex items-center gap-2">
+                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Analisando Inteligência Visual...
+                </span>
+              ) : '✨ Mágica: Extrair Dados com IA'}
+            </Button>
+          </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-4">
           <Field label="Nome da Empresa">
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="input w-full"
+              className="input w-full bg-gray-900/50"
               placeholder="Ex: Pizzaria Bate Papo"
               required
               disabled={loading}
@@ -266,7 +219,7 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
               type="text"
               value={city}
               onChange={(e) => setCity(e.target.value)}
-              className="input w-full"
+              className="input w-full bg-gray-900/50"
               placeholder="Ex: São Paulo"
               disabled={loading}
             />
@@ -277,7 +230,7 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
               type="text"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="input w-full"
+              className="input w-full bg-gray-900/50"
               placeholder="Ex: Serviços Jurídicos"
               disabled={loading}
             />
@@ -288,7 +241,7 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
               type="text"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className="input w-full"
+              className="input w-full bg-gray-900/50"
               placeholder="Ex: (11) 99999-9999"
               disabled={loading}
             />
@@ -300,7 +253,7 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
                 type="text"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                className="input w-full"
+                className="input w-full bg-gray-900/50"
                 placeholder="Ex: Rua das Flores, 123"
                 disabled={loading}
               />
@@ -308,12 +261,12 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-800">
+        <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-800/60">
           <Button type="button" variant="secondary" onClick={onClose} disabled={loading || loadingImage}>
             Cancelar
           </Button>
           <Button type="submit" variant="primary" disabled={loading || loadingImage || !name}>
-            {loading ? 'Processando...' : 'Prospectar'}
+            {loading ? 'Processando...' : 'Confirmar e Prospectar'}
           </Button>
         </div>
       </form>
