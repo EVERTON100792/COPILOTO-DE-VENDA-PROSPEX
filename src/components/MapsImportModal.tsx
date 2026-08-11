@@ -134,16 +134,6 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
             onClick={() => fileInputRef.current?.click()}
           >
             <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            <input 
-              type="file" 
-              accept="image/*" 
-              className="hidden" 
-              ref={fileInputRef}
-              onChange={(e) => {
-                const file = e.target.files?.[0]
-                if (file) handleImageFile(file)
-              }}
-            />
             <div className="bg-gray-800 p-4 rounded-full shadow-xl mb-4 group-hover:scale-110 transition-transform duration-300 border border-gray-700">
               <span className="text-4xl block translate-y-px">📸</span>
             </div>
@@ -152,7 +142,7 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="relative rounded-2xl overflow-hidden border border-gray-700 bg-black/40 flex items-center justify-center h-64 shadow-lg ring-1 ring-white/5">
+            <div className="relative rounded-2xl overflow-hidden border border-gray-700 bg-black/40 flex items-center justify-center h-48 shadow-lg ring-1 ring-white/5">
               <img src={imagePreview} alt="Preview" className="max-h-full max-w-full object-contain drop-shadow-xl" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 hover:opacity-100 transition-opacity flex items-end justify-center pb-4">
                 <button 
@@ -170,16 +160,6 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
               >
                 ×
               </button>
-              <input 
-                type="file" 
-                accept="image/*" 
-                className="hidden" 
-                ref={fileInputRef}
-                onChange={(e) => {
-                  const file = e.target.files?.[0]
-                  if (file) handleImageFile(file)
-                }}
-              />
             </div>
             <Button 
               type="button" 
@@ -269,6 +249,20 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
             {loading ? 'Processando...' : 'Confirmar e Prospectar'}
           </Button>
         </div>
+
+        {/* File input invisível global para o componente */}
+        <input 
+          type="file" 
+          accept="image/*" 
+          className="hidden" 
+          style={{ display: 'none' }}
+          ref={fileInputRef}
+          onChange={(e) => {
+            const file = e.target.files?.[0]
+            if (file) handleImageFile(file)
+            if (fileInputRef.current) fileInputRef.current.value = ''
+          }}
+        />
       </form>
     </Modal>
   )
