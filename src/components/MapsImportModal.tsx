@@ -105,6 +105,7 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
   const [category, setCategory] = useState('')
   const [phone, setPhone] = useState('')
   const [address, setAddress] = useState('')
+  const [rating, setRating] = useState<string>('')
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   
   const [loading, setLoading] = useState(false)
@@ -128,6 +129,7 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
       setCategory('')
       setPhone('')
       setAddress('')
+      setRating('')
       setImagePreview(null)
       setExtractedData(null)
       setLoading(false)
@@ -206,6 +208,7 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
       setCategory(data.category || '')
       setPhone(data.phone || '')
       setAddress(data.address || '')
+      if (data.rating) setRating(data.rating.toString())
       setExtractedData(data)
       toast('success', 'Dados extraídos com sucesso! Revise e clique em Prospectar.')
     } catch (err: any) {
@@ -226,7 +229,8 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
     setLoading(true)
     try {
       // Usa os dados extraídos, combinados com o que o usuário alterou nos inputs
-      const submitData = extractedData ? { ...extractedData, name, city, category, phone, address } : undefined
+      const parsedRating = rating ? parseFloat(rating.replace(',', '.')) : undefined
+      const submitData = extractedData ? { ...extractedData, name, city, category, phone, address, rating: parsedRating } : { rating: parsedRating }
       const result = await importFromMaps(name, city, '', submitData) 
       if (cancelRef.current) return
       
@@ -355,7 +359,7 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
             />
           </Field>
 
-          <div className="md:col-span-2">
+          <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-5">
             <Field label="Endereço">
               <input
                 type="text"
@@ -363,6 +367,17 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
                 onChange={(e) => setAddress(e.target.value)}
                 className="input w-full bg-gray-900/50"
                 placeholder="Ex: Rua das Flores, 123"
+                disabled={loading}
+              />
+            </Field>
+
+            <Field label="Avaliações (Google)">
+              <input
+                type="text"
+                value={rating}
+                onChange={(e) => setRating(e.target.value)}
+                className="input w-full bg-gray-900/50"
+                placeholder="Ex: 4.8"
                 disabled={loading}
               />
             </Field>

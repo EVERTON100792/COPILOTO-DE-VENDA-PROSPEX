@@ -43,7 +43,7 @@ export async function importFromMaps(name: string, city: string, url: string, pr
       website: prefilledData?.website || searchData.website || null,
       instagram: searchData.instagram || null,
       facebook: searchData.facebook || null,
-      rating: searchData.rating || null,
+      rating: prefilledData?.rating ? Number(prefilledData.rating) : (searchData.rating || null),
       reviewCount: searchData.reviewCount || null,
       hours: prefilledData?.hours || searchData.hours || null,
       summary: searchData.summary || null,
@@ -116,6 +116,7 @@ export interface ExtractedImageInfo {
   phone: string
   website: string
   hours: string
+  rating?: string
 }
 
 export async function extractDataFromImage(base64Image: string): Promise<ExtractedImageInfo> {
@@ -160,6 +161,7 @@ Retorne APENAS um JSON estrito, sem markdown, contendo os seguintes campos:
 - "phone": Número de telefone (string)
 - "website": URL do site (string)
 - "hours": Horário de funcionamento, ex: "Aberto até as 18:00" (string)
+- "rating": Avaliação em estrelas ou nota, ex: "4.8" ou "4.8 (120)" (string)
 
 Se um campo não estiver presente no texto ou não for dedutível, retorne string vazia "". Não use null.`
 
@@ -181,7 +183,8 @@ Se um campo não estiver presente no texto ou não for dedutível, retorne strin
       address: data.address || '',
       phone: data.phone || '',
       website: data.website || '',
-      hours: data.hours || ''
+      hours: data.hours || '',
+      rating: data.rating || ''
     }
   } catch (err) {
     console.error('Falha ao parsear JSON da imagem', err, result)
