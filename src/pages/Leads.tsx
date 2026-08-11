@@ -5,6 +5,7 @@ import { Card, Badge, EmptyState, Button, Field } from '../components/ui'
 import { WEBSITE_STATUS_LABELS } from '../config/defaults'
 import { doExport } from '../components/exportHelpers'
 import { parseImportCsv, importCandidates, type ImportCandidate } from '../services/importExport'
+import { MapsImportModal } from '../components/MapsImportModal'
 
 export default function Leads() {
   const navigate = useNavigate()
@@ -23,6 +24,7 @@ export default function Leads() {
   const [methodFilter, setMethodFilter] = useState('')
   const [favoritesOnly, setFavoritesOnly] = useState(filterParam === 'favorites')
   const [importOpen, setImportOpen] = useState(false)
+  const [mapsImportOpen, setMapsImportOpen] = useState(false)
   const [importText, setImportText] = useState('')
   const [candidates, setCandidates] = useState<ImportCandidate[] | null>(null)
 
@@ -96,6 +98,7 @@ export default function Leads() {
           <p className="page-subtitle">{leads.length} resultados · filtrados e escalonáveis</p>
         </div>
         <div className="page-actions">
+          <Button variant="secondary" onClick={() => setMapsImportOpen(true)}>Nova Empresa (Maps)</Button>
           <Button variant="secondary" onClick={() => setImportOpen(true)}>Importar CSV</Button>
           <Button variant="secondary" onClick={() => doExport(leads, 'csv')}>Exportar CSV</Button>
           <Button variant="secondary" onClick={() => doExport(leads, 'json')}>Exportar JSON</Button>
@@ -217,37 +220,44 @@ export default function Leads() {
               <h3 className="modal-title">Importar leads (CSV)</h3>
               <button className="modal-close" onClick={() => setImportOpen(false)}>×</button>
             </div>
-            <Field label="Cole os dados" hint="Colunas esperadas: nome;categoria;cidade;estado;telefone;whatsapp;website;instagram;email (separador ; ou ,)">
-              <textarea className="textarea" style={{ minHeight: 180 }} value={importText} onChange={(e) => setImportText(e.target.value)} placeholder={'nome;categoria;cidade;estado;telefone\nFarmacia Demo;Farmácias;Londrina;PR;(43) 9999-0000'} />
-            </Field>
-            {candidates && (
-              <div className="mt-12">
-                <b className="small">Prévia de detecção</b>
-                <div className="table-wrap" style={{ maxHeight: 260, overflowY: 'auto' }}>
-                  <table className="data">
-                    <thead><tr><th>Nome</th><th>Problemas</th><th>Duplicado?</th></tr></thead>
-                    <tbody>
-                      {candidates.slice(0, 20).map((c, i) => (
-                        <tr key={i}>
-                          <td>{c.name || <span className="muted">sem nome</span>}</td>
-                          <td className="small">{c.issues.join('; ') || 'ok'}</td>
-                          <td>{c.duplicateOf ? `sim: ${c.duplicateOf}` : 'não'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+            <div className="modal-body space-y-4">
+              <Field label="Cole os dados" hint="Colunas esperadas: nome;categoria;cidade;estado;telefone;whatsapp;website;instagram;email (separador ; ou ,)">
+                <textarea className="textarea" style={{ minHeight: 180 }} value={importText} onChange={(e) => setImportText(e.target.value)} placeholder={'nome;categoria;cidade;estado;telefone\nFarmacia Demo;Farmácias;Londrina;PR;(43) 9999-0000'} />
+              </Field>
+              {candidates && (
+                <div className="mt-4">
+                  <b className="small">Prévia de detecção</b>
+                  <div className="table-wrap" style={{ maxHeight: 260, overflowY: 'auto' }}>
+                    <table className="data">
+                      <thead><tr><th>Nome</th><th>Problemas</th><th>Duplicado?</th></tr></thead>
+                      <tbody>
+                        {candidates.slice(0, 20).map((c, i) => (
+                          <tr key={i}>
+                            <td>{c.name || <span className="muted">sem nome</span>}</td>
+                            <td className="small">{c.issues.join('; ') || 'ok'}</td>
+                            <td>{c.duplicateOf ? `sim: ${c.duplicateOf}` : 'não'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="small muted mt-2">{candidates.length} registros detectados</div>
                 </div>
-                <div className="small muted mt-8">{candidates.length} registros detectados</div>
-              </div>
-            )}
+              )}
+            </div>
             <div className="modal-foot">
               <Button variant="secondary" onClick={() => setImportOpen(false)}>Cancelar</Button>
-              {candidates && <Button variant="primary" onClick={confirmImport}>Importar válidos</Button>}
-              {!candidates && <Button variant="primary" onClick={handleImport}>Analisar arquivo</Button>}
+              {candidates ? (
+                <Button variant="primary" onClick={confirmImport}>Confirmar</Button>
+              ) : (
+                <Button variant="primary" onClick={handleImport}>Analisar arquivo</Button>
+              )}
             </div>
           </div>
         </div>
       )}
+
+      <MapsImportModal open={mapsImportOpen} onClose={() => setMapsImportOpen(false)} />
     </div>
   )
 }
