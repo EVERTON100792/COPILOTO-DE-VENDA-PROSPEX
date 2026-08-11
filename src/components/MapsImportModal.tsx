@@ -14,6 +14,8 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
   const [name, setName] = useState('')
   const [city, setCity] = useState('')
   const [category, setCategory] = useState('')
+  const [phone, setPhone] = useState('')
+  const [address, setAddress] = useState('')
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   
   const [loading, setLoading] = useState(false)
@@ -31,6 +33,8 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
       setName('')
       setCity('')
       setCategory('')
+      setPhone('')
+      setAddress('')
       setImagePreview(null)
       setExtractedData(null)
       setMode('url')
@@ -116,6 +120,8 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
       setName(data.name || '')
       setCity(data.city || '')
       setCategory(data.category || '')
+      setPhone(data.phone || '')
+      setAddress(data.address || '')
       setExtractedData(data)
       toast('success', 'Dados extraídos com sucesso! Revise e clique em Prospectar.')
     } catch (err: any) {
@@ -134,8 +140,8 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
 
     setLoading(true)
     try {
-      // Usa os dados extraídos, combinados com o que o usuário alterou nos inputs (nome, cidade, categoria)
-      const submitData = extractedData ? { ...extractedData, name, city, category } : undefined
+      // Usa os dados extraídos, combinados com o que o usuário alterou nos inputs
+      const submitData = extractedData ? { ...extractedData, name, city, category, phone, address } : undefined
       const result = await importFromMaps(name, city, url, submitData) 
       if (result.success) {
         toast('success', `Empresa ${result.company?.name} cadastrada com sucesso!`)
@@ -266,16 +272,40 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
             />
           </Field>
           
-          <Field label="Nicho/Categoria (detectado)">
+          <Field label="Nicho/Categoria (para a IA buscar)">
             <input
               type="text"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               className="input w-full"
-              placeholder="Ex: Restaurante"
+              placeholder="Ex: Serviços Jurídicos"
               disabled={loading}
             />
           </Field>
+
+          <Field label="Telefone">
+            <input
+              type="text"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className="input w-full"
+              placeholder="Ex: (11) 99999-9999"
+              disabled={loading}
+            />
+          </Field>
+
+          <div className="md:col-span-2">
+            <Field label="Endereço">
+              <input
+                type="text"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                className="input w-full"
+                placeholder="Ex: Rua das Flores, 123"
+                disabled={loading}
+              />
+            </Field>
+          </div>
         </div>
 
         <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-800">
