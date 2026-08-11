@@ -66,8 +66,12 @@ export default function Discovery() {
   const active = sorted.find((r) => r.status === 'RUNNING' || r.status === 'QUEUED')
 
   const contactedCompanyIds = useMemo(() => {
-    return new Set(prospectingSessions.map(s => s.companyId))
-  }, [prospectingSessions])
+    return new Set(
+      prospectingSessions
+        .map((s) => s.companyId)
+        .filter((id) => companies.some((c) => c.id === id))
+    )
+  }, [prospectingSessions, companies])
 
   const filteredCompanies = useMemo(() => {
     let list = companies
