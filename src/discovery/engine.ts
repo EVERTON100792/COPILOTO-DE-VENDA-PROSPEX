@@ -467,6 +467,13 @@ export class DiscoveryService {
           if (out.website && !comp.website) updates.website = out.website
           if (out.rating && !comp.rating) updates.rating = out.rating
           if (out.reviewCount && !comp.reviewCount) updates.reviewCount = out.reviewCount
+          if (out.instagram && !comp.instagram) updates.instagram = out.instagram
+          if (out.facebook && !comp.facebook) updates.facebook = out.facebook
+          if (out.email && !comp.email) updates.email = out.email
+          if (out.hours && !comp.hours) updates.hours = out.hours
+          if (out.summary && !comp.summary) updates.summary = out.summary
+          if (out.address && !comp.address) updates.address = out.address
+
           if (Object.keys(updates).length > 0) {
             useApp.getState().upsertCompany({ ...comp, ...updates })
           }

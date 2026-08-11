@@ -322,6 +322,7 @@ export interface Company {
   rating: number | null
   reviewCount: number | null
   hours: string | null
+  summary: string | null
   source: string | null
   isDemo: boolean
   createdAt: string

@@ -24,6 +24,8 @@ export function buildMessageVariants(input: CopywriterInput): MessageVariant[] {
   if (c.rating !== null) facts.push(`sua avaliação pública é ${c.rating}`)
   if (c.reviewCount !== null) facts.push(`${c.reviewCount} avaliações registradas`)
   if (c.instagram) facts.push('presença ativa no Instagram')
+  if (c.summary) facts.push(`foco em ${c.summary.substring(0, 40).toLowerCase()}`)
+  if (c.hours) facts.push(`aberto ${c.hours.split('-')[0]}`)
 
   const hasSite = Boolean(c.website)
   const gapLine = hasSite

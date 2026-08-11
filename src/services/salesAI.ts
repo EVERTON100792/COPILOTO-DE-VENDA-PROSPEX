@@ -90,6 +90,12 @@ export function generateOpeningMessage(company: Company | any): string {
 export async function generateOpeningMessageAI(company: Company | any, apiKey?: string): Promise<string> {
   if (!apiKey) return generateOpeningMessage(company)
 
+  const extraFacts = [
+    company?.summary ? `Resumo do negócio: ${company.summary}` : '',
+    company?.hours ? `Horário de funcionamento: ${company.hours}` : '',
+    company?.address ? `Endereço: ${company.address}` : '',
+  ].filter(Boolean).join('\n')
+
   const system = `${SALES_BRAIN_PROMPT}
 
 O sistema solicita a GERAÇÃO DA PRIMEIRA ABORDAGEM para a empresa abaixo.
@@ -97,10 +103,12 @@ Você deve agir como Everton, de Rolândia/PR, especialista em sites locais.
 A empresa é: ${company?.name || 'Empresa Local'}
 Categoria: ${company?.category || 'Negócio Local'}
 Cidade: ${company?.city || 'Rolândia'}
+${extraFacts ? `\nFATOS DESCOBERTOS NA INTERNET SOBRE A EMPRESA:\n${extraFacts}` : ''}
 
 INSTRUÇÕES:
 - O texto deve ser super natural, amigável e direto.
 - Diga que você preparou uma demonstração gratuita de um site exclusivo para eles e pergunte se pode enviar o link.
+- ${extraFacts ? 'USE SUTILMENTE 1 DOS FATOS DESCOBERTOS (resumo, horário ou endereço) para provar que você estudou a empresa de verdade antes de mandar a mensagem. Ex: "Vi que vocês abrem às..." ou "Notei que o foco de vocês é...". Não seja robótico.' : 'Seja direto e cordial.'}
 - Não use palavras difíceis ou jargões.
 - Retorne APENAS o texto da mensagem, sem aspas, sem formatação JSON, sem introduções.`
 
