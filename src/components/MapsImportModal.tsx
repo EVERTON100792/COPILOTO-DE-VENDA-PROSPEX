@@ -3,6 +3,60 @@ import { Modal, Button, Field } from './ui'
 import { useApp } from '../services/store'
 import { importFromMaps, extractDataFromImage } from '../services/mapsImport'
 
+import type { ReactNode } from 'react'
+
+const IMAGE_STEPS = [
+  "Iniciando motores da IA...",
+  "Lendo a imagem com Visão Computacional (OCR)...",
+  "Analisando contexto e extraindo dados importantes...",
+  "Finalizando e estruturando JSON..."
+]
+
+const PROSPECT_STEPS = [
+  "Validando dados da empresa...",
+  "Buscando informações avançadas na Web...",
+  "Avaliando o nível de oportunidade (Lead Score)...",
+  "Cadastrando no CRM..."
+]
+
+function PipelineUI({ steps, currentStep, title }: { steps: string[], currentStep: number, title: string }) {
+  return (
+    <div className="flex flex-col p-6 bg-gray-900/90 rounded-2xl border border-gray-700/60 shadow-2xl shadow-primary/10 w-full transition-all duration-300">
+      <div className="flex items-center gap-3 mb-5 border-b border-gray-800/80 pb-4">
+        <span className="relative flex h-3.5 w-3.5">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-primary shadow-[0_0_10px_var(--primary)]"></span>
+        </span>
+        <span className="text-white font-bold tracking-[0.15em] text-sm drop-shadow-md">{title}</span>
+      </div>
+      <div className="flex flex-col gap-4">
+        {steps.map((step, index) => {
+          const isActive = index === currentStep;
+          const isDone = index < currentStep;
+          return (
+            <div key={index} className={`flex items-center gap-4 transition-all duration-700 ease-out ${isDone || isActive ? 'opacity-100 translate-x-0' : 'opacity-20 -translate-x-4'}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border-2 transition-all duration-500 ${
+                isDone ? 'bg-green-500/10 border-green-500 text-green-400 shadow-[0_0_10px_rgba(34,197,94,0.3)]' : 
+                isActive ? 'bg-primary/20 border-primary text-primary shadow-[0_0_15px_var(--primary)] scale-110' : 
+                'bg-gray-800 border-gray-700 text-gray-500'
+              }`}>
+                {isDone ? '✓' : isActive ? '⚡' : (index + 1)}
+              </div>
+              <span className={`text-[15px] font-medium transition-colors duration-500 ${
+                isDone ? 'text-gray-400' : 
+                isActive ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]' : 
+                'text-gray-600'
+              }`}>
+                {step}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 interface MapsImportModalProps {
   open: boolean
   onClose: () => void
@@ -18,6 +72,9 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
   
   const [loading, setLoading] = useState(false)
   const [loadingImage, setLoadingImage] = useState(false)
+  
+  const [imageStep, setImageStep] = useState(0)
+  const [prospectStep, setProspectStep] = useState(0)
   
   const [extractedData, setExtractedData] = useState<any>(null)
 
@@ -35,8 +92,33 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
       setExtractedData(null)
       setLoading(false)
       setLoadingImage(false)
+      setImageStep(0)
+      setProspectStep(0)
     }
   }, [open])
+
+  // Pipeline intervals
+  useEffect(() => {
+    let interval: any;
+    if (loadingImage) {
+      setImageStep(0)
+      interval = setInterval(() => {
+        setImageStep(s => (s < IMAGE_STEPS.length - 1 ? s + 1 : s))
+      }, 3000)
+    }
+    return () => clearInterval(interval)
+  }, [loadingImage])
+
+  useEffect(() => {
+    let interval: any;
+    if (loading) {
+      setProspectStep(0)
+      interval = setInterval(() => {
+        setProspectStep(s => (s < PROSPECT_STEPS.length - 1 ? s + 1 : s))
+      }, 2500)
+    }
+    return () => clearInterval(interval)
+  }, [loading])
 
   // Lida com colar imagem no modal
   useEffect(() => {
@@ -152,13 +234,7 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
               </button>
             </div>
             {loadingImage ? (
-              <div className="w-full py-4 rounded-xl flex items-center justify-center gap-3 bg-gradient-to-r from-purple-600 to-pink-500 shadow-[0_0_20px_rgba(168,85,247,0.6)] border border-white/20 transition-all">
-                <span className="relative flex h-4 w-4">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-4 w-4 bg-white shadow-[0_0_10px_#fff]"></span>
-                </span>
-                <span className="font-bold text-white tracking-widest animate-pulse drop-shadow-md">IA TRABALHANDO NOS DADOS...</span>
-              </div>
+              <PipelineUI steps={IMAGE_STEPS} currentStep={imageStep} title="IA TRABALHANDO NOS DADOS..." />
             ) : (
               <Button 
                 type="button" 
@@ -233,22 +309,18 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-800/60">
-          <Button type="button" variant="secondary" onClick={onClose} disabled={loading || loadingImage}>
-            Cancelar
-          </Button>
+        <div className={`flex ${loading ? 'flex-col' : 'justify-end gap-3'} mt-8 pt-6 border-t border-gray-800/60`}>
           {loading ? (
-            <div className="flex items-center gap-2 px-6 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-500 shadow-[0_0_15px_rgba(168,85,247,0.5)] text-white">
-              <svg className="animate-spin -ml-1 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              <span className="font-semibold animate-pulse tracking-wide">CRIANDO PROSPECÇÃO...</span>
-            </div>
+            <PipelineUI steps={PROSPECT_STEPS} currentStep={prospectStep} title="CRIANDO PROSPECÇÃO..." />
           ) : (
-            <Button type="submit" variant="primary" disabled={loadingImage || !name}>
-              Confirmar e Prospectar
-            </Button>
+            <>
+              <Button type="button" variant="secondary" onClick={onClose} disabled={loadingImage}>
+                Cancelar
+              </Button>
+              <Button type="submit" variant="primary" disabled={loadingImage || !name}>
+                Confirmar e Prospectar
+              </Button>
+            </>
           )}
         </div>
       </form>
