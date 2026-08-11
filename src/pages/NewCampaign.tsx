@@ -55,7 +55,7 @@ export default function NewCampaign() {
   const valid =
     step === 0 ? Boolean(nicheName)
     : step === 1 ? Boolean(city && state)
-    : step === 2 ? quantity >= 1 && quantity <= 500
+    : step === 2 ? quantity >= 1
     : step === 3 ? true
     : step === 4 ? Boolean(source)
     : step === 5 ? true
@@ -379,8 +379,8 @@ export default function NewCampaign() {
                     </button>
                   ))}
                 </div>
-                <Field label="Ou crie um nicho personalizado" hint="Ex.: Pet shops, Clínicas veterinárias, Delivery...">
-                  <input className="input" value={customNiche} onChange={(e) => setCustomNiche(e.target.value)} placeholder="Digite um segmento próprio" />
+                <Field label="Ou crie um nicho personalizado" hint="Pode digitar vários, ex: Pet shops, Clínicas veterinárias">
+                  <input className="input" value={customNiche} onChange={(e) => setCustomNiche(e.target.value)} placeholder="Digite um ou mais segmentos..." />
                 </Field>
                 {selectedDna && !customNiche && (
                   <div className="alert alert-info mt-8">
@@ -420,10 +420,12 @@ export default function NewCampaign() {
             {step === 2 && (
               <Field label="Quantidade de empresas a descobrir">
                 <div className="flex items-center gap-16">
-                  <input type="range" min={1} max={300} step={10} value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} style={{ flex: 1 }} aria-label="Quantidade" />
-                  <span className="range-value">{quantity} empresas</span>
+                  <input type="range" min={1} max={5000} step={10} value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} style={{ flex: 1 }} aria-label="Quantidade" />
+                  <input type="number" min={1} className="input" style={{ width: '120px' }} value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} aria-label="Quantidade Numérica" />
+                  <span className="tiny">empresas</span>
                 </div>
                 <div className="tiny muted mt-8">
+                  Dica: Se você colocar múltiplos nichos/palavras-chave na etapa anterior, a ferramenta tentará buscar essa quantidade total.
                   O limite real pode ser menor conforme a fonte (cota/rate limit do provedor).
                 </div>
               </Field>
