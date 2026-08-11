@@ -7,6 +7,7 @@ import { DiscoveryService } from '../discovery/engine'
 import { providerLabel } from '../discovery/registry'
 import { LeadMap } from '../components/LeadMap'
 import { SalesConversationModal } from '../components/SalesConversationModal'
+import { MapsImportModal } from '../components/MapsImportModal'
 import type { DiscoveryRun, Company } from '../types'
 
 
@@ -54,6 +55,7 @@ export default function Discovery() {
 
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null)
   const [salesModalOpen, setSalesModalOpen] = useState(false)
+  const [mapsImportOpen, setMapsImportOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [showMap, setShowMap] = useState(true)
   const [confirmClear, setConfirmClear] = useState(false)
@@ -121,6 +123,7 @@ export default function Discovery() {
           </p>
         </div>
         <div className="page-actions">
+          <Button variant="primary" onClick={() => setMapsImportOpen(true)} className="shadow-lg shadow-primary/30 ring-2 ring-primary/50 animate-pulse-soft">✨ Cadastrar Empresa</Button>
           <Link to="/campaigns/new" className="btn btn-primary">Nova Busca</Link>
           <Button variant="danger" onClick={() => setConfirmClear(true)}>🗑️ Limpar Dados</Button>
         </div>
@@ -367,6 +370,8 @@ export default function Discovery() {
           </div>
         </Card>
       )}
+
+      <MapsImportModal open={mapsImportOpen} onClose={() => setMapsImportOpen(false)} />
 
       {/* Modal de confirmação — Limpar Buscas/Empresas */}
       {confirmClear && (

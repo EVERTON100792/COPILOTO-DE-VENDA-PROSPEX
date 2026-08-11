@@ -5,7 +5,6 @@ import { Card, Badge, Button, EmptyState, Field } from '../components/ui'
 import { doExport } from '../components/exportHelpers'
 import { parseImportCsv, importCandidates, previewImportCsv } from '../services/importExport'
 import { DataStatusBadge } from '../components/discovery'
-import { MapsImportModal } from '../components/MapsImportModal'
 import type { Company, DataStatus } from '../types'
 
 
@@ -27,7 +26,6 @@ export default function Companies() {
   const [category, setCategory] = useState('')
   const [statusFilter, setStatusFilter] = useState<'' | DataStatus>('')
 
-  const [mapsImportOpen, setMapsImportOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
   const [importName, setImportName] = useState('')
   const [importPreview, setImportPreview] = useState<{ total: number; valid: number; duplicates: number; incomplete: number } | null>(null)
@@ -125,7 +123,6 @@ export default function Companies() {
           <p className="page-subtitle">{list.length} de {companies.length} empresa(s)</p>
         </div>
         <div className="page-actions">
-          <Button variant="primary" onClick={() => setMapsImportOpen(true)} className="shadow-lg shadow-primary/30 ring-2 ring-primary/50 animate-pulse-soft">✨ Cadastrar Empresa (IA)</Button>
           <Button variant="secondary" onClick={() => setImportOpen(true)}>Importar CSV</Button>
           <Button variant="secondary" onClick={() => exportCompanies('csv')}>Exportar CSV</Button>
           <Button variant="secondary" onClick={() => exportCompanies('json')}>Exportar JSON</Button>
@@ -258,8 +255,6 @@ export default function Companies() {
           </div>
         </div>
       )}
-
-      <MapsImportModal open={mapsImportOpen} onClose={() => setMapsImportOpen(false)} />
     </div>
   )
 }
