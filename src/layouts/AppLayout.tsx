@@ -123,6 +123,7 @@ export function AppLayout() {
             {query && (
               <button className="link-btn" onClick={() => { setQuery(''); setSearchOpen(false) }}>✕</button>
             )}
+            </div>
           </div>
           <div className="topbar-right">
             <div style={{ position: 'relative' }}>
