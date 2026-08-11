@@ -120,10 +120,29 @@ export interface ExtractedImageInfo {
 
 export async function extractDataFromImage(base64Image: string): Promise<ExtractedImageInfo> {
   const { callAI } = await import('./aiClient')
+  const Tesseract = await import('tesseract.js')
   
+  // 1. Extração de texto via OCR (Visão local no navegador)
+  let extractedText = ''
+  try {
+    const result = await Tesseract.recognize(base64Image, 'por', {
+      logger: m => console.log(m)
+    })
+    extractedText = result.data.text
+  } catch (err) {
+    console.error('Erro no OCR via Tesseract:', err)
+    throw new Error('Falha ao ler o texto da imagem. Tente uma imagem mais nítida.')
+  }
+
+  if (!extractedText || extractedText.trim().length < 5) {
+    throw new Error('Não foi possível identificar textos legíveis na imagem.')
+  }
+
+  // 2. IA estrutura os dados extraídos pelo OCR
   const systemPrompt = `
-Você é um extrator de dados de imagens de empresas (Google Maps, sites, etc).
-Sua tarefa é analisar o print/screenshot enviado pelo usuário e extrair os dados da empresa visível.
+Você é um extrator de dados de empresas (Google Maps, sites, etc).
+O usuário enviou um texto extraído via OCR de um print/screenshot. 
+Sua tarefa é analisar o texto abaixo e extrair os dados da empresa.
 Retorne APENAS um JSON estrito, sem markdown, contendo os seguintes campos:
 - "name": Nome da empresa (string)
 - "city": Cidade da empresa (string)
@@ -133,14 +152,13 @@ Retorne APENAS um JSON estrito, sem markdown, contendo os seguintes campos:
 - "website": URL do site (string)
 - "hours": Horário de funcionamento, ex: "Aberto até as 18:00" (string)
 
-Se um campo não estiver visível ou não for dedutível, retorne string vazia "". Não use null.`
+Se um campo não estiver presente no texto ou não for dedutível, retorne string vazia "". Não use null.`
 
-  const userMessage = "Extraia as informações desta imagem e devolva o JSON."
+  const userMessage = `TEXTO DO PRINT (OCR):\n\n${extractedText}\n\nExtraia as informações do texto acima e devolva o JSON estrito.`
 
   const result = await callAI({
     systemPrompt,
     userMessage,
-    imageBase64: base64Image,
     temperature: 0.2
   })
 
