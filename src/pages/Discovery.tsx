@@ -148,47 +148,45 @@ export default function Discovery() {
       {companies.length > 0 && (
         <>
           {/* Tabs */}
-          <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
-            <Button 
-              variant={activeTab === 'NEW' ? 'primary' : 'secondary'} 
-              onClick={() => setActiveTab('NEW')}
-            >
-              🏢 Resultados da Busca ({companies.filter(c => !contactedCompanyIds.has(c.id)).length})
-            </Button>
-            <Button 
-              variant={activeTab === 'CONTACTED' ? 'primary' : 'secondary'} 
-              onClick={() => setActiveTab('CONTACTED')}
-            >
-              💬 Conversas Ativas ({contactedCompanyIds.size})
-            </Button>
-          </div>
-
           {/* Search & Map Toggle */}
-          <Card>
-            <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 24, background: 'var(--surface)', padding: 16, borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', gap: 8, flex: 1, minWidth: 300 }}>
               <input
                 className="input"
-                style={{ flex: 1, minWidth: 200 }}
+                style={{ flex: 1, margin: 0 }}
                 placeholder="Buscar por nome, categoria ou cidade..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
               <Button
                 variant={showMap ? 'primary' : 'secondary'}
-                size="sm"
                 onClick={() => setShowMap(!showMap)}
               >
                 {showMap ? '🗺️ Ocultar Mapa' : '🗺️ Ver Mapa'}
               </Button>
-              <span style={{ fontSize: 13, color: 'var(--muted)' }}>
-                {filteredCompanies.length} de {companies.length} empresas
-              </span>
             </div>
-          </Card>
+            
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <Button 
+                variant={activeTab === 'NEW' ? 'primary' : 'secondary'} 
+                onClick={() => setActiveTab('NEW')}
+                style={{ padding: '8px 16px' }}
+              >
+                🏢 Buscas ({companies.filter(c => !contactedCompanyIds.has(c.id)).length})
+              </Button>
+              <Button 
+                variant={activeTab === 'CONTACTED' ? 'primary' : 'secondary'} 
+                onClick={() => setActiveTab('CONTACTED')}
+                style={{ padding: '8px 16px' }}
+              >
+                💬 Ativas ({contactedCompanyIds.size})
+              </Button>
+            </div>
+          </div>
 
           {/* Map */}
           {showMap && (
-            <Card>
+            <Card style={{ marginBottom: 24 }}>
               <div style={{ marginBottom: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: 13, color: 'var(--muted)' }}>
                   Mapa de oportunidades — {companies.length} pins encontrados
@@ -198,27 +196,14 @@ export default function Discovery() {
             </Card>
           )}
 
-          {/* Company Cards Grouped by Niche */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
-            {Object.entries(
-              filteredCompanies.reduce((acc, company) => {
-                const cat = company.category || 'Outros'
-                if (!acc[cat]) acc[cat] = []
-                acc[cat].push(company)
-                return acc
-              }, {} as Record<string, typeof filteredCompanies>)
-            ).map(([category, list]) => (
-              <div key={category}>
-                <h2 style={{ fontSize: 18, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 22 }}>{categoryIcon(category)}</span>
-                  {category}
-                  <span style={{ fontSize: 13, color: 'var(--muted)', fontWeight: 400, marginLeft: 8 }}>
-                    ({list.length} empresas)
-                  </span>
-                </h2>
-                
-                <div className="grid grid-3">
-                  {list.map((company) => {
+          {/* Single Unified Grid for All Companies */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h2 style={{ fontSize: 18, margin: 0 }}>Resultados da Busca</h2>
+              <span style={{ fontSize: 13, color: 'var(--muted)' }}>Exibindo {filteredCompanies.length} empresas</span>
+            </div>
+            <div className="grid grid-dense">
+                  {filteredCompanies.map((company) => {
                     const ws = websiteStatus(company)
                     const icon = categoryIcon(company.category)
                     const hasLead = leadsByCompany.has(company.id)
@@ -333,8 +318,6 @@ export default function Discovery() {
                     )
                   })}
                 </div>
-              </div>
-            ))}
           </div>
         </>
       )}
