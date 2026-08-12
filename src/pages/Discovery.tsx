@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { BorderBeamPanel } from '../components/ui/BorderBeamPanel'
 import { useApp } from '../services/store'
 import { Card, Button, Badge, EmptyState } from '../components/ui'
 import { formatDateTime } from '../lib/utils'
@@ -114,18 +115,18 @@ export default function Discovery() {
         onClose={() => { setSalesModalOpen(false); setSelectedCompany(null) }}
       />
 
-      {/* Page Header */}
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">🔍 Busca & Mapa de Empresas</h1>
-          <p className="page-subtitle">
-            {companies.length} empresas encontradas · Clique em <strong>⚡ Prospectar</strong> para iniciar a conversa guiada por IA
-          </p>
+      {/* Page Header - Ultra Compact */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <h1 className="page-title" style={{ fontSize: 24, margin: 0 }}>🔍 Busca & Mapa</h1>
+          <span style={{ fontSize: 13, color: 'var(--muted)', background: 'var(--surface)', padding: '4px 10px', borderRadius: 20, border: '1px solid var(--border)' }}>
+            {companies.length} empresas
+          </span>
         </div>
-        <div className="page-actions">
-          <Button variant="primary" onClick={() => setMapsImportOpen(true)} className="shadow-lg shadow-primary/30 ring-2 ring-primary/50 animate-pulse-soft">✨ Cadastrar Empresa</Button>
-          <Link to="/campaigns/new" className="btn btn-primary">Nova Busca</Link>
-          <Button variant="danger" onClick={() => setConfirmClear(true)}>🗑️ Limpar Dados</Button>
+        <div className="page-actions" style={{ display: 'flex', gap: 8 }}>
+          <Button variant="primary" onClick={() => setMapsImportOpen(true)} className="shadow-lg shadow-primary/30 ring-2 ring-primary/50 animate-pulse-soft" size="sm">✨ Cadastrar Empresa</Button>
+          <Link to="/campaigns/new" className="btn btn-primary btn-sm">Nova Busca</Link>
+          <Button variant="danger" size="sm" onClick={() => setConfirmClear(true)}>🗑️ Limpar</Button>
         </div>
       </div>
 
@@ -186,14 +187,9 @@ export default function Discovery() {
 
           {/* Map */}
           {showMap && (
-            <Card style={{ marginBottom: 24 }}>
-              <div style={{ marginBottom: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: 13, color: 'var(--muted)' }}>
-                  Mapa de oportunidades — {companies.length} pins encontrados
-                </span>
-              </div>
+            <div style={{ marginBottom: 24, borderRadius: 'var(--radius)', overflow: 'hidden', border: '1px solid var(--border)' }}>
               <LeadMap companies={companies} />
-            </Card>
+            </div>
           )}
 
           {/* Single Unified Grid for All Companies */}
@@ -208,7 +204,7 @@ export default function Discovery() {
                     const icon = categoryIcon(company.category)
                     const hasLead = leadsByCompany.has(company.id)
                     return (
-                      <Card key={company.id} className="card-hover" style={{ display: 'flex', flexDirection: 'column', padding: 20 }}>
+                      <BorderBeamPanel key={company.id} className="card card-hover" style={{ display: 'flex', flexDirection: 'column', padding: 20 }} beams={2} thickness={2} radius={24} glow={true}>
                         {/* Header */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
                           <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
@@ -314,7 +310,7 @@ export default function Discovery() {
                             🗺️
                           </a>
                         </div>
-                      </Card>
+                      </BorderBeamPanel>
                     )
                   })}
                 </div>
