@@ -217,88 +217,117 @@ export default function Discovery() {
                   </span>
                 </h2>
                 
-                <div className="grid grid-dense">
+                <div className="grid grid-3">
                   {list.map((company) => {
                     const ws = websiteStatus(company)
                     const icon = categoryIcon(company.category)
                     const hasLead = leadsByCompany.has(company.id)
                     return (
-                      <Card key={company.id} className="card-hover card-compact">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                      <Card key={company.id} className="card-hover" style={{ display: 'flex', flexDirection: 'column', padding: 20 }}>
+                        {/* Header */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                             <div style={{
-                              width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+                              width: 44, height: 44, borderRadius: 12, flexShrink: 0,
                               background: 'var(--surface-2)', display: 'grid', placeItems: 'center',
-                              fontSize: 18, border: '1px solid var(--border)'
+                              fontSize: 22, border: '1px solid var(--border)',
+                              boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.05)'
                             }}>
                               {icon}
                             </div>
                             <div>
-                              <div style={{ fontWeight: 700, fontSize: 13.5, lineHeight: 1.2, wordBreak: 'break-word', paddingRight: 8 }}>{company.name}</div>
-                              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
-                                {company.category || 'Negócio Local'}
+                              <div style={{ fontWeight: 800, fontSize: 15, lineHeight: 1.2, wordBreak: 'break-word', color: 'var(--text)' }}>
+                                {company.name}
+                              </div>
+                              <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4, display: 'flex', gap: 6, alignItems: 'center' }}>
+                                <span>{company.category || 'Negócio Local'}</span>
+                                {company.rating && (
+                                  <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--warning)' }}>
+                                    <span>⭐</span> <span style={{ fontWeight: 600 }}>{company.rating.toFixed(1)}</span>
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </div>
                           <button 
                             className="link-btn"
-                            style={{ padding: 4, color: 'var(--muted)', fontSize: 14 }}
+                            style={{ padding: 4, color: 'var(--muted)', fontSize: 16, background: 'var(--surface-2)', borderRadius: 6, width: 28, height: 28, display: 'grid', placeItems: 'center' }}
                             onClick={() => removeCompany(company.id)}
-                            title="Excluir permanentemente"
+                            title="Excluir"
                           >
                             ✕
                           </button>
                         </div>
 
-                        {/* Badges */}
-                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {/* Status Pills */}
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
                           <Badge variant={ws.variant}>{ws.label}</Badge>
                           {company.isDemo && <Badge variant="muted">DEMO</Badge>}
+                          {hasLead && <Badge variant="success">✓ Lead Cadastrado</Badge>}
                         </div>
 
-                        {/* Minimal Info */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11.5, color: 'var(--muted)', flex: 1 }}>
-                          {company.city && <span style={{ display: 'flex', gap: 6 }}><span style={{ color: 'var(--primary)', filter: 'grayscale(0.5)' }}>📍</span> {company.city}</span>}
+                        {/* Info Grid (Glass Pills) */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20, flex: 1 }}>
                           {company.phone && (
-                            <a 
-                              href={`https://wa.me/55${company.phone.replace(/\D/g, '')}`} 
-                              target="_blank" 
-                              rel="noopener noreferrer" 
-                              style={{ display: 'flex', gap: 6, color: 'var(--text)', textDecoration: 'none' }}
-                            >
-                              <span style={{ color: 'var(--success)' }}>💬</span> 
-                              <span>{company.phone}</span>
+                            <a href={`https://wa.me/55${company.phone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" 
+                               style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: 8, color: 'var(--text)', textDecoration: 'none', border: '1px solid var(--border-soft)', transition: 'background 0.2s' }}>
+                              <span style={{ color: 'var(--success)', fontSize: 16 }}>💬</span> 
+                              <span style={{ fontWeight: 500 }}>{company.phone}</span>
                             </a>
                           )}
-                        </div>
-
-                        {/* CTA - visible on hover or low opacity by default */}
-                        <div className="card-actions">
-                          <div style={{ display: 'flex', gap: 8 }}>
-                            <Button
-                              variant="primary"
-                              size="sm"
-                              style={{ flex: 1 }}
-                              onClick={() => handleProspectar(company)}
-                            >
-                              {contactedCompanyIds.has(company.id) ? '💬 Continuar' : '⚡ Prospectar IA'}
-                            </Button>
-                            <a 
-                              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(company.name + ' ' + (company.city || ''))}`}
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="btn btn-secondary btn-sm"
-                              style={{ padding: '6px 10px' }}
-                              title="Ver no Maps"
-                            >
-                              🗺️
+                          {company.website && (
+                            <a href={company.website} target="_blank" rel="noopener noreferrer" 
+                               style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: 8, color: 'var(--info)', textDecoration: 'none', border: '1px solid var(--border-soft)', overflow: 'hidden' }}>
+                              <span style={{ fontSize: 16 }}>🌐</span> 
+                              <span style={{ whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{company.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}</span>
                             </a>
+                          )}
+                          {company.instagram && (
+                            <a href={company.instagram} target="_blank" rel="noopener noreferrer" 
+                               style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: 8, color: '#ec4899', textDecoration: 'none', border: '1px solid var(--border-soft)' }}>
+                              <span style={{ fontSize: 16 }}>📸</span> Instagram
+                            </a>
+                          )}
+                          
+                          <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+                            {company.city && (
+                              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', background: 'rgba(255,255,255,0.02)', borderRadius: 6, color: 'var(--muted)', fontSize: 12 }}>
+                                <span style={{ filter: 'grayscale(0.5)' }}>📍</span> {company.city}
+                              </div>
+                            )}
+                            {company.hours && (
+                              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', background: 'rgba(255,255,255,0.02)', borderRadius: 6, color: 'var(--muted)', fontSize: 12, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                                <span>🕒</span> {company.hours}
+                              </div>
+                            )}
                           </div>
-                          {hasLead && (
-                            <div style={{ fontSize: 11, color: 'var(--success)', textAlign: 'center', fontWeight: 600 }}>
-                              ✓ Lead já cadastrado
+                          
+                          {company.summary && (
+                            <div style={{ fontSize: 11.5, color: 'var(--muted)', fontStyle: 'italic', marginTop: 8, lineHeight: 1.4, padding: '8px', background: 'var(--surface-2)', borderRadius: 6, borderLeft: '2px solid var(--primary)' }}>
+                              "{company.summary.length > 90 ? company.summary.substring(0, 90) + '...' : company.summary}"
                             </div>
                           )}
+                        </div>
+
+                        {/* Actions Base */}
+                        <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
+                          <Button
+                            variant="primary"
+                            style={{ flex: 1, padding: '12px 16px', fontSize: 14, fontWeight: 700 }}
+                            onClick={() => handleProspectar(company)}
+                          >
+                            {contactedCompanyIds.has(company.id) ? '💬 Continuar' : '⚡ Prospectar IA'}
+                          </Button>
+                          <a 
+                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(company.name + ' ' + (company.city || ''))}`}
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="btn btn-secondary"
+                            style={{ padding: '0 16px', display: 'grid', placeItems: 'center', fontSize: 18 }}
+                            title="Ver no Maps"
+                          >
+                            🗺️
+                          </a>
                         </div>
                       </Card>
                     )
