@@ -61,9 +61,9 @@ export async function fetchOpenCodeModels(apiKey: string, baseUrl?: string): Pro
   
   // Hack to proxy to bypass CORS
   let url = endpoint
-  if (endpoint.includes('opencode.ai/zen')) url = '/api/opencode_zen/zen/v1/models'
-  else if (endpoint.includes('opencode.co') || endpoint.includes('opencode.ai/zen/go')) url = '/api/opencode_go/models'
+  if (endpoint.includes('opencode.co') || endpoint.includes('opencode.ai/zen/go')) url = '/api/opencode_go/zen/go/v1/models'
   else if (endpoint.includes('openrouter.ai')) url = '/api/openrouter/models'
+  else if (endpoint.includes('opencode.ai/zen')) url = '/api/opencode_zen/zen/v1/models'
 
   try {
     const res = await fetch(url, {
@@ -112,10 +112,10 @@ function resolveEndpoint(provider: string, canonicalBaseUrl: string): string {
 export async function callAI(options: AIClientOptions): Promise<string> {
   const settings = useApp.getState().settings
 
-  // HARDCODED A PEDIDO DO USUARIO
-  const apiKey = 'sk-Ij7Pnh4rZAO5LowBUVQuQxMCDD6dRotijpprSQ189yJkGtaBGqgqmuqgjwPw7D2L'
-  const configuredBaseUrl = 'https://opencode.ai/zen/go/v1'
-  const preferredModel = 'deepseek-v4-pro'
+  // Use settings from the store
+  const apiKey = settings.aiApiKey
+  const configuredBaseUrl = settings.aiBaseUrl || 'https://opencode.ai/zen/go/v1'
+  const preferredModel = settings.aiModel || 'deepseek-v4-pro'
 
   const provider = detectProvider(apiKey, configuredBaseUrl)
 
@@ -140,7 +140,6 @@ export async function callAI(options: AIClientOptions): Promise<string> {
     : (preferredModel ? [preferredModel] : defaultModels)
 
   const headers: Record<string, string> = {
-    Authorization: `Bearer ${apiKey}`,
     'Content-Type': 'application/json',
   }
 

@@ -1,12 +1,12 @@
 [[redirects]]
   from = "/api/opencode_go/*"
-  to = "https://opencode.ai/:splat"
+  to = "/.netlify/functions/opencode"
   status = 200
   force = true
 
 [[redirects]]
   from = "/api/opencode_zen/*"
-  to = "https://opencode.ai/:splat"
+  to = "/.netlify/functions/opencode"
   status = 200
   force = true
 
