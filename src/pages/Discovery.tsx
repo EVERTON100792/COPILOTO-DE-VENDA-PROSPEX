@@ -60,11 +60,12 @@ export default function Discovery() {
   const [search, setSearch] = useState('')
   const [showMap, setShowMap] = useState(true)
   const [confirmClear, setConfirmClear] = useState(false)
-  const [activeTab, setActiveTab] = useState<'NEW' | 'CONTACTED'>('NEW')
+  const [activeTab, setActiveTab] = useState<'NEW' | 'CONTACTED' | 'NO_WHATSAPP'>('NEW')
   const prospectingSessions = useApp((s) => s.prospectingSessions)
 
   const sorted = useMemo(() => [...runs].reverse(), [runs])
   const removeCompany = useApp((s) => s.removeCompany)
+  const patchCompany = useApp((s) => s.patchCompany)
 
   const active = sorted.find((r) => r.status === 'RUNNING' || r.status === 'QUEUED')
 
@@ -79,9 +80,11 @@ export default function Discovery() {
   const filteredCompanies = useMemo(() => {
     let list = companies
     if (activeTab === 'NEW') {
-      list = list.filter(c => !contactedCompanyIds.has(c.id))
-    } else {
-      list = list.filter(c => contactedCompanyIds.has(c.id))
+      list = list.filter(c => !contactedCompanyIds.has(c.id) && c.whatsappStatus !== 'NO_WHATSAPP')
+    } else if (activeTab === 'CONTACTED') {
+      list = list.filter(c => contactedCompanyIds.has(c.id) && c.whatsappStatus !== 'NO_WHATSAPP')
+    } else if (activeTab === 'NO_WHATSAPP') {
+      list = list.filter(c => c.whatsappStatus === 'NO_WHATSAPP')
     }
 
     if (!search.trim()) return list
@@ -173,14 +176,21 @@ export default function Discovery() {
                 onClick={() => setActiveTab('NEW')}
                 style={{ padding: '8px 16px' }}
               >
-                🏢 Buscas ({companies.filter(c => !contactedCompanyIds.has(c.id)).length})
+                🏢 Buscas ({companies.filter(c => !contactedCompanyIds.has(c.id) && c.whatsappStatus !== 'NO_WHATSAPP').length})
               </Button>
               <Button 
                 variant={activeTab === 'CONTACTED' ? 'primary' : 'secondary'} 
                 onClick={() => setActiveTab('CONTACTED')}
                 style={{ padding: '8px 16px' }}
               >
-                💬 Ativas ({contactedCompanyIds.size})
+                💬 Ativas ({companies.filter(c => contactedCompanyIds.has(c.id) && c.whatsappStatus !== 'NO_WHATSAPP').length})
+              </Button>
+              <Button 
+                variant={activeTab === 'NO_WHATSAPP' ? 'primary' : 'secondary'} 
+                onClick={() => setActiveTab('NO_WHATSAPP')}
+                style={{ padding: '8px 16px' }}
+              >
+                🚫 Sem WhatsApp ({companies.filter(c => c.whatsappStatus === 'NO_WHATSAPP').length})
               </Button>
             </div>
           </div>
@@ -230,14 +240,29 @@ export default function Discovery() {
                               </div>
                             </div>
                           </div>
-                          <button 
-                            className="link-btn"
-                            style={{ padding: 4, color: 'var(--muted)', fontSize: 16, background: 'var(--surface-2)', borderRadius: 6, width: 28, height: 28, display: 'grid', placeItems: 'center' }}
-                            onClick={() => removeCompany(company.id)}
-                            title="Excluir"
-                          >
-                            ✕
-                          </button>
+                          <div style={{ display: 'flex', gap: 4 }}>
+                            {company.whatsappStatus !== 'NO_WHATSAPP' && (
+                              <button 
+                                className="link-btn"
+                                style={{ padding: 4, color: 'var(--muted)', fontSize: 16, background: 'var(--surface-2)', borderRadius: 6, width: 28, height: 28, display: 'grid', placeItems: 'center' }}
+                                onClick={() => {
+                                  patchCompany(company.id, { whatsappStatus: 'NO_WHATSAPP' })
+                                  toast('info', 'Movida para contatos alternativos')
+                                }}
+                                title="Marcar Sem WhatsApp"
+                              >
+                                🚫
+                              </button>
+                            )}
+                            <button 
+                              className="link-btn"
+                              style={{ padding: 4, color: 'var(--muted)', fontSize: 16, background: 'var(--surface-2)', borderRadius: 6, width: 28, height: 28, display: 'grid', placeItems: 'center' }}
+                              onClick={() => removeCompany(company.id)}
+                              title="Excluir"
+                            >
+                              ✕
+                            </button>
+                          </div>
                         </div>
 
                         {/* Status Pills */}
@@ -245,6 +270,7 @@ export default function Discovery() {
                           <Badge variant={ws.variant}>{ws.label}</Badge>
                           {company.isDemo && <Badge variant="muted">DEMO</Badge>}
                           {hasLead && <Badge variant="success">✓ Lead Cadastrado</Badge>}
+                          {company.whatsappStatus === 'NO_WHATSAPP' && <Badge variant="danger">Sem WhatsApp</Badge>}
                         </div>
 
                         {/* Info Grid (Glass Pills) */}

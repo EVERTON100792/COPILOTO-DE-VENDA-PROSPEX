@@ -230,7 +230,7 @@ create table public.automation_rules (
   enabled boolean not null default true,
   trigger text not null,
   conditions jsonb not null default '[]'::jsonb,
-  actions text[] not null default '{}'::jsonb,
+  actions text[] not null default '{}'::text[],
   created_at timestamptz not null default now()
 );
 
@@ -302,49 +302,49 @@ returns uuid language sql stable security definer as $$
   select workspace_id from public.app_users where id = auth.uid()
 $$;
 
-create or replace policy "own workspace" on public.workspaces
+create policy "own workspace" on public.workspaces
   for all using (id = public.current_workspace_id());
 
-create or replace policy "own companies" on public.companies
+create policy "own companies" on public.companies
   for all using (workspace_id = public.current_workspace_id());
 
-create or replace policy "own campaigns" on public.campaigns
+create policy "own campaigns" on public.campaigns
   for all using (workspace_id = public.current_workspace_id());
 
-create or replace policy "own leads" on public.leads
+create policy "own leads" on public.leads
   for all using (workspace_id = public.current_workspace_id());
 
-create or replace policy "own lead_messages" on public.lead_messages
+create policy "own lead_messages" on public.lead_messages
   using (lead_id in (select id from public.leads));
 
-create or replace policy "own lead_activities" on public.lead_activities
+create policy "own lead_activities" on public.lead_activities
   using (lead_id in (select id from public.leads));
 
-create or replace policy "own notes" on public.notes
+create policy "own notes" on public.notes
   using (lead_id in (select id from public.leads));
 
-create or replace policy "own followups" on public.followups
+create policy "own followups" on public.followups
   using (lead_id in (select id from public.leads));
 
-create or replace policy "own proposals" on public.proposals
+create policy "own proposals" on public.proposals
   using (lead_id in (select id from public.leads));
 
-create or replace policy "own tasks" on public.tasks
+create policy "own tasks" on public.tasks
   using (lead_id in (select id from public.leads) or lead_id is null);
 
-create or replace policy "own notifications" on public.notifications
+create policy "own notifications" on public.notifications
   for all using (workspace_id = public.current_workspace_id());
 
-create or replace policy "own agent_runs" on public.agent_runs
+create policy "own agent_runs" on public.agent_runs
   for select using (true);
 
-create or replace policy "own automation_rules" on public.automation_rules
+create policy "own automation_rules" on public.automation_rules
   for all using (workspace_id = public.current_workspace_id());
 
-create or replace policy "own audit_log" on public.audit_log
+create policy "own audit_log" on public.audit_log
   for all using (workspace_id = public.current_workspace_id());
 
-create or replace policy "own settings" on public.settings
+create policy "own settings" on public.settings
   for all using (workspace_id = public.current_workspace_id());
 
 -- app_users: usuário só vê a própria linha (criadores podem ler o workspace)

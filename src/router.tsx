@@ -1,9 +1,21 @@
 import { Component, Suspense, lazy, type ReactNode, type ComponentType } from 'react'
-import { createBrowserRouter, Navigate } from 'react-router-dom'
+import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
+import { useAuth, AuthProvider } from './contexts/AuthContext'
+import { Login } from './pages/Login'
 import { AppLayout } from './layouts/AppLayout'
 import { ToastHost } from './components/ToastHost'
 import { LoadingState } from './components/ui'
 import { logger } from './lib/logger'
+
+function ProtectedRoute() {
+  const { session, loading } = useAuth()
+  
+  if (loading) return <LoadingState label="Verificando autenticação..." />
+  
+  if (!session) return <Navigate to="/login" replace />
+  
+  return <Outlet />
+}
 
 export class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
   state = { error: null as Error | null }
@@ -45,16 +57,28 @@ function lazyPage(loader: () => Promise<{ default: ComponentType }>) {
 
 export const router = createBrowserRouter([
   {
+    path: '/login',
+    element: <Login />,
+  },
+  {
     path: '/',
     element: (
-      <>
-        <AppLayout />
-        <ToastHost />
-      </>
+      <AuthProvider>
+        <ProtectedRoute />
+      </AuthProvider>
     ),
     children: [
-      { index: true, element: lazyPage(() => import('./pages/Dashboard')) },
-      { path: 'campaigns/new', element: lazyPage(() => import('./pages/NewCampaign')) },
+      {
+        path: '',
+        element: (
+          <>
+            <AppLayout />
+            <ToastHost />
+          </>
+        ),
+        children: [
+          { index: true, element: lazyPage(() => import('./pages/Dashboard')) },
+          { path: 'campaigns/new', element: lazyPage(() => import('./pages/NewCampaign')) },
       { path: 'campaigns', element: lazyPage(() => import('./pages/Campaigns')) },
       { path: 'campaigns/:id', element: lazyPage(() => import('./pages/CampaignDetail')) },
       { path: 'discovery', element: lazyPage(() => import('./pages/Discovery')) },
@@ -81,6 +105,8 @@ export const router = createBrowserRouter([
       { path: 'reports', element: lazyPage(() => import('./pages/Reports')) },
       { path: 'settings', element: lazyPage(() => import('./pages/Settings')) },
       { path: '*', element: <Navigate to="/" replace /> },
+        ],
+      },
     ],
   },
 ])

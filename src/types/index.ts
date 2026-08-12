@@ -81,7 +81,7 @@ export interface AppUser {
 
 export type DataStatus = 'REAL' | 'DEMO' | 'IMPORTED' | 'MANUAL' | 'UNVERIFIED'
 export type DiscoveryConfidence = 'HIGH' | 'MEDIUM' | 'LOW'
-export type WhatsAppStatus = 'UNKNOWN' | 'VERIFIED' | 'NOT_VERIFIED'
+export type WhatsAppStatus = 'UNKNOWN' | 'VERIFIED' | 'NOT_VERIFIED' | 'NO_WHATSAPP'
 export type DiscoveryMode = 'DEMO' | 'REAL' | 'HYBRID'
 export type DiscoveryRunStatus = 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'PARTIAL' | 'FAILED' | 'CANCELLED'
 

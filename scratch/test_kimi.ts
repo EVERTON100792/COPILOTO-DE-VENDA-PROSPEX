@@ -8,7 +8,7 @@ global.fetch = fetch as any;
 jest.mock('./src/services/store', () => ({
   useApp: {
     getState: () => ({
-      settings: { aiApiKey: 'sk-Ij7Pnh4rZAO5LowBUVQuQxMCDD6dRotijpprSQ189yJkGtaBGqgqmuqgjwPw7D2L' }
+      settings: { aiApiKey: process.env.VITE_AI_API_KEY || 'REPLACE_ME' }
     })
   }
 }));

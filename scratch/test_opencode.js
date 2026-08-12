@@ -1,6 +1,6 @@
 const fs = require('fs');
 
-const key = 'sk-Ij7Pnh4rZAO5LowBUVQuQxMCDD6dRotijpprSQ189yJkGtaBGqgqmuqgjwPw7D2L';
+const key = process.env.VITE_AI_API_KEY || 'REPLACE_ME';
 
 console.log('Testing key format:', key.slice(0, 15));
 

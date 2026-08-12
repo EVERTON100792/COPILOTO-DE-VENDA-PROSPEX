@@ -6,9 +6,29 @@ import type {
   ProspectingSession, ProspectingMessage, WebsiteProject, WebsiteVersion,
 } from '../types'
 import { DEFAULT_SETTINGS } from '../config/defaults'
+import { supabase } from '../lib/supabase'
 import { getItem, setItem, clearAll } from '../database/storage'
 import { buildDemoCompanies } from '../database/demoFactory'
 import { uid, nowIso } from '../lib/utils'
+
+// Converte objeto camelCase para snake_case (para enviar ao Supabase)
+function toSnake(obj: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(obj).map(([k, v]) => [
+      k.replace(/([A-Z])/g, '_$1').toLowerCase(),
+      v,
+    ])
+  )
+}
+// Converte objeto snake_case para camelCase (para receber do Supabase)
+function toCamel(obj: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(obj).map(([k, v]) => [
+      k.replace(/_([a-z])/g, (_, c) => c.toUpperCase()),
+      v,
+    ])
+  )
+}
 
 
 export interface Toast {
@@ -76,6 +96,7 @@ interface AppState {
 
   setCompanies: (companies: Company[]) => void
   upsertCompany: (company: Company) => void
+  patchCompany: (id: string, patch: Partial<Company>) => void
   removeCompany: (id: string) => void
   clearAllCompanies: () => void
   clearDiscoveryData: () => void
@@ -151,17 +172,18 @@ export const useApp = create<AppState>((set, get) => ({
   toasts: [],
   hydrated: false,
 
-  hydrate: () => {
+  hydrate: async () => {
     const loadedSettings = getItem('settings', DEFAULT_SETTINGS)
     if (!loadedSettings.aiApiKey && import.meta.env.VITE_AI_API_KEY) {
       loadedSettings.aiApiKey = import.meta.env.VITE_AI_API_KEY as string
     }
-    const loadedCompanies = getItem<Company[]>('companies', [])
+    const localCompanies = getItem<Company[]>('companies', [])
+    const localLeads = getItem<Lead[]>('leads', [])
+
     set({
       settings: loadedSettings,
-      companies: loadedCompanies,
-
-      leads: getItem<Lead[]>('leads', []),
+      companies: localCompanies,
+      leads: localLeads,
       activities: getItem<LeadActivity[]>('activities', []),
       notes: getItem<Note[]>('notes', []),
       followups: getItem<Followup[]>('followups', []),
@@ -183,6 +205,65 @@ export const useApp = create<AppState>((set, get) => ({
       websiteProjects: getItem<WebsiteProject[]>('websiteProjects', []),
       hydrated: true,
     })
+
+    // Sincronizar com Supabase em background
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+
+      const { data: user } = await supabase
+        .from('app_users').select('workspace_id')
+        .eq('id', session.user.id).single()
+      if (!user) return
+
+      const wsId = user.workspace_id
+      set({ workspaceId: wsId })
+
+      // Verificar se o banco remoto já tem dados
+      const { data: remoteComps } = await supabase
+        .from('companies').select('*')
+        .eq('workspace_id', wsId)
+      const { data: remoteLeads } = await supabase
+        .from('leads').select('*')
+        .eq('workspace_id', wsId)
+
+      const hasRemoteData = (remoteComps && remoteComps.length > 0)
+
+      if (hasRemoteData) {
+        // Banco tem dados → usar dados remotos
+        const cloudCompanies = (remoteComps || []).map(r => toCamel(r) as unknown as Company)
+        const cloudLeads = (remoteLeads || []).map(r => toCamel(r) as unknown as Lead)
+        set({ companies: cloudCompanies, leads: cloudLeads })
+        persist({ companies: cloudCompanies, leads: cloudLeads })
+        console.log(`[Sync] Carregados ${cloudCompanies.length} empresas e ${cloudLeads.length} leads do banco.`)
+      } else if (localCompanies.length > 0) {
+        // Banco vazio mas localStorage tem dados → migrar para o banco!
+        console.log(`[Sync] Migrando ${localCompanies.length} empresas e ${localLeads.length} leads para o banco...`)
+        const compsToUpload = localCompanies.map(c => {
+          const snake = toSnake({ ...c, workspaceId: wsId } as unknown as Record<string, unknown>)
+          return snake
+        })
+        const leadsToUpload = localLeads.map(l => {
+          const snake = toSnake({ ...l, workspaceId: wsId } as unknown as Record<string, unknown>)
+          return snake
+        })
+
+        // Enviar em lotes de 50
+        for (let i = 0; i < compsToUpload.length; i += 50) {
+          const batch = compsToUpload.slice(i, i + 50)
+          const { error } = await supabase.from('companies').upsert(batch)
+          if (error) console.error('[Sync] Erro companies batch:', error.message)
+        }
+        for (let i = 0; i < leadsToUpload.length; i += 50) {
+          const batch = leadsToUpload.slice(i, i + 50)
+          const { error } = await supabase.from('leads').upsert(batch)
+          if (error) console.error('[Sync] Erro leads batch:', error.message)
+        }
+        console.log('[Sync] Migração concluída com sucesso!')
+      }
+    } catch (err) {
+      console.error('[Sync] Erro ao sincronizar com Supabase:', err)
+    }
   },
 
   resetAll: () => {
@@ -226,15 +307,26 @@ export const useApp = create<AppState>((set, get) => ({
 
   setCompanies: (companies) => { set({ companies }); persist({ companies }) },
   upsertCompany: (company) => {
+    company.workspaceId = get().workspaceId;
     const companies = get().companies
     const idx = companies.findIndex((c) => c.id === company.id)
     const next = idx >= 0 ? companies.map((c) => (c.id === company.id ? company : c)) : [...companies, company]
-    set({ companies: next }); persist({ companies: next })
+    set({ companies: next }); persist({ companies: next });
+    supabase.from('companies').upsert(toSnake(company as unknown as Record<string, unknown>))
+      .then(({ error }) => { if (error) console.error('[Supabase] upsertCompany:', error.message) });
+  },
+  patchCompany: (id, patch) => {
+    const companies = get().companies.map(c => c.id === id ? { ...c, ...patch } : c)
+    set({ companies }); persist({ companies })
+    supabase.from('companies').update(toSnake(patch as Record<string, unknown>)).eq('id', id)
+      .then(({ error }) => { if (error) console.error('[Supabase] patchCompany:', error.message) })
   },
   removeCompany: (id) => {
     const companies = get().companies.filter((c) => c.id !== id)
     const leads = get().leads.filter((l) => l.companyId !== id)
     set({ companies, leads }); persist({ companies, leads })
+    supabase.from('companies').delete().eq('id', id)
+      .then(({ error }) => { if (error) console.error('[Supabase] removeCompany:', error.message) })
   },
   clearAllCompanies: () => {
     set({ companies: [], leads: [], discoveryResults: [], discoveryRuns: [] })
@@ -266,19 +358,26 @@ export const useApp = create<AppState>((set, get) => ({
   },
 
   upsertLead: (lead) => {
+    lead.workspaceId = get().workspaceId;
     const leads = get().leads
     const idx = leads.findIndex((l) => l.id === lead.id)
     const next = idx >= 0 ? leads.map((l) => (l.id === lead.id ? lead : l)) : [...leads, lead]
-    set({ leads: next }); persist({ leads: next })
+    set({ leads: next }); persist({ leads: next });
+    supabase.from('leads').upsert(toSnake(lead as unknown as Record<string, unknown>))
+      .then(({ error }) => { if (error) console.error('[Supabase] upsertLead:', error.message) });
   },
   setLeads: (leads) => { set({ leads }); persist({ leads }) },
   removeLead: (id) => {
     const leads = get().leads.filter((l) => l.id !== id)
     set({ leads }); persist({ leads })
+    supabase.from('leads').delete().eq('id', id)
+      .then(({ error }) => { if (error) console.error('[Supabase] removeLead:', error.message) })
   },
   moveLead: (id, status) => {
     const leads = get().leads.map((l) => (l.id === id ? { ...l, status, updatedAt: nowIso() } : l))
     set({ leads }); persist({ leads })
+    supabase.from('leads').update({ status, updated_at: nowIso() }).eq('id', id)
+      .then(({ error }) => { if (error) console.error('[Supabase] moveLead:', error.message) })
   },
 
   addActivity: (a) => {

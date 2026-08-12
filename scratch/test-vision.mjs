@@ -1,7 +1,7 @@
 import fs from 'fs'
 
 async function run() {
-  const apiKey = 'sk-Ij7Pnh4rZAO5LowBUVQuQxMCDD6dRotijpprSQ189yJkGtaBGqgqmuqgjwPw7D2L'
+  const apiKey = process.env.VITE_AI_API_KEY || 'REPLACE_ME'
   const endpoints = ['https://opencode.ai/zen/go/v1/chat/completions', 'https://opencode.ai/zen/v1/chat/completions']
   const imageBase64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
 

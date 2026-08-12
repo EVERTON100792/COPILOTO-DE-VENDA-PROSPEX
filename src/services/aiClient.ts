@@ -117,7 +117,7 @@ export async function callAI(options: AIClientOptions): Promise<string> {
   const configuredBaseUrl = settings.aiBaseUrl || 'https://opencode.ai/zen/go/v1'
   const preferredModel = settings.aiModel || 'deepseek-v4-pro'
 
-  const provider = detectProvider(apiKey, configuredBaseUrl)
+  const provider = detectProvider(apiKey || '', configuredBaseUrl)
 
   // Default canonical URL per provider
   const canonicalBase = configuredBaseUrl
@@ -141,6 +141,10 @@ export async function callAI(options: AIClientOptions): Promise<string> {
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+  }
+
+  if (apiKey) {
+    headers.Authorization = `Bearer ${apiKey}`
   }
 
   if (provider === 'openrouter') {

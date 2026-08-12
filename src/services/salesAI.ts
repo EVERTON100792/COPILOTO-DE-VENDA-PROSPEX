@@ -84,7 +84,10 @@ export function generateOpeningMessage(company: Company | any): string {
     niche === 'fitness' ? 'grade de horários, modalidades e tabela de planos' :
     niche === 'pet' ? 'agendamento fácil de banho, tosa e consultas' : 'apresentação profissional de serviços e botão direto para WhatsApp'
 
-  return `Olá! Me chamo Everton, moro aqui em Rolândia e sou especialista em criação de sites para empresas locais. Pesquisei o ${name} e notei que vocês ainda não possuem um site institucional moderno. Hoje, estar sem site significa perder clientes todos os dias para concorrentes que aparecem primeiro no Google. Montei uma demonstração gratuita de um site exclusivo para o ${name} (com ${nicheDetail}). Posso te enviar o link para dar uma olhada sem compromisso?`
+  const hour = new Date().getHours()
+  const greeting = hour < 12 ? 'Bom dia!' : hour < 18 ? 'Boa tarde!' : 'Boa noite!'
+
+  return `${greeting} Tudo bem? Me chamo Everton, moro aqui em Rolândia e sou especialista em criação de sites para empresas locais. Pesquisei o ${name} e notei que vocês ainda não possuem um site institucional moderno. Hoje, estar sem site significa perder clientes todos os dias para concorrentes que aparecem primeiro no Google. Montei uma demonstração gratuita de um site exclusivo para o ${name} (com ${nicheDetail}). Posso te enviar o link para dar uma olhada sem compromisso?`
 }
 
 export async function generateOpeningMessageAI(company: Company | any, apiKey?: string): Promise<string> {
@@ -106,7 +109,7 @@ Cidade: ${company?.city || 'Rolândia'}
 ${extraFacts ? `\nFATOS DESCOBERTOS NA INTERNET SOBRE A EMPRESA:\n${extraFacts}` : ''}
 
 INSTRUÇÕES:
-- Inicie com uma saudação educada e profissional, porém amigável (Ex: "Olá,", "Bom dia," ou "Boa tarde,"). NUNCA inicie com gírias como "Fala!".
+- Inicie SEMPRE com uma saudação educada (ex: "Bom dia!", "Boa tarde!") e pergunte se está tudo bem (ex: "Tudo bem com vocês?"). NUNCA inicie de forma seca apenas com "Olá,".
 - O texto deve ser natural, educado e ir direto ao ponto de forma cordial.
 - Diga que você preparou uma demonstração gratuita de um site exclusivo para eles e pergunte se pode enviar o link.
 - ${extraFacts ? 'USE SUTILMENTE 1 DOS FATOS DESCOBERTOS (resumo, horário ou endereço) para provar que você estudou a empresa. Ex: "Notei que o endereço de vocês fica na..." ou "Vi que o foco de vocês é...".' : 'Seja direto e cordial.'}

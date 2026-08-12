@@ -24,3 +24,12 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+
+# Na versao: nunca versionar .env
+.env
+
+# Estado local do Netlify CLI
+.netlify/
+
+# Credenciais e estado local do Supabase CLI
+supabase/.temp/

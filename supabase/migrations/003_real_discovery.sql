@@ -44,7 +44,7 @@ create table if not exists public.company_socials (
 );
 alter table public.company_socials enable row level security;
 
-create or replace policy "own company_socials" on public.company_socials
+create policy "own company_socials" on public.company_socials
   using (company_id in (select id from public.companies));
 
 -- ---------- discovery_runs (execuções de busca) ----------
@@ -71,7 +71,7 @@ create table if not exists public.discovery_runs (
 );
 alter table public.discovery_runs enable row level security;
 
-create or replace policy "own discovery_runs" on public.discovery_runs
+create policy "own discovery_runs" on public.discovery_runs
   for all using (workspace_id = public.current_workspace_id());
 
 create index if not exists idx_discovery_runs_workspace on public.discovery_runs (workspace_id, started_at desc);
@@ -91,7 +91,7 @@ create table if not exists public.discovery_results (
 );
 alter table public.discovery_results enable row level security;
 
-create or replace policy "own discovery_results" on public.discovery_results
+create policy "own discovery_results" on public.discovery_results
   for all using (workspace_id = public.current_workspace_id());
 
 create index if not exists idx_discovery_results_run on public.discovery_results (run_id);
