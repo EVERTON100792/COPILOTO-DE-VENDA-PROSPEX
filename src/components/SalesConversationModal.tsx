@@ -544,26 +544,57 @@ export const SalesConversationModal: React.FC<Props> = ({ open, company, leadId,
             </div>
 
             {/* Action Buttons */}
-            <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              <Button variant="secondary" size="sm" onClick={handleNewResponse} style={{ flex: 1 }}>
-                📝 Registrar Nova Resposta
-              </Button>
-              {instruction.showSiteButton && (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={handleGenerateSite}
-                  disabled={generatingSite}
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <Button variant="secondary" size="sm" onClick={handleNewResponse} style={{ flex: 1 }}>
+                  📝 Registrar Nova Resposta
+                </Button>
+                {instruction.showSiteButton && (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={handleGenerateSite}
+                    disabled={generatingSite}
+                    style={{ flex: 1 }}
+                  >
+                    {generatingSite ? '⏳ Gerando...' : '🌐 Gerar Site Real'}
+                  </Button>
+                )}
+                {instruction.showProposalButton && (
+                  <Button variant="secondary" size="sm" onClick={handleGenerateProposal} style={{ flex: 1 }}>
+                    📄 Gerar Proposta PDF
+                  </Button>
+                )}
+              </div>
+              
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', borderTop: '1px dashed var(--border)', paddingTop: 10 }}>
+                <Button 
+                  variant="success" 
+                  size="sm" 
+                  onClick={() => { 
+                    setStage('WON');
+                    const ld = useApp.getState().leads.find((l) => l.companyId === company?.id);
+                    if (ld) moveLead(ld.id, 'WON');
+                    toast('success', '🏆 Venda fechada com sucesso!');
+                  }} 
                   style={{ flex: 1 }}
                 >
-                  {generatingSite ? '⏳ Gerando...' : '🌐 Gerar Site com Dados Reais'}
+                  ✅ Fechar Atendimento (Ganho)
                 </Button>
-              )}
-              {instruction.showProposalButton && (
-                <Button variant="secondary" size="sm" onClick={handleGenerateProposal} style={{ flex: 1 }}>
-                  📄 Gerar Proposta PDF
+                <Button 
+                  variant="danger" 
+                  size="sm" 
+                  onClick={() => { 
+                    setStage('LOST');
+                    const ld = useApp.getState().leads.find((l) => l.companyId === company?.id);
+                    if (ld) moveLead(ld.id, 'LOST');
+                    toast('success', '🗑️ Atendimento encerrado (Arquivo Morto)');
+                  }} 
+                  style={{ flex: 1 }}
+                >
+                  ❌ Arquivo Morto (Perdido)
                 </Button>
-              )}
+              </div>
             </div>
           </div>
         )}
