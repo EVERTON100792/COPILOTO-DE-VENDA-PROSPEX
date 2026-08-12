@@ -205,7 +205,13 @@ export const SalesConversationModal: React.FC<Props> = ({ open, company, leadId,
         ? await analyzeClientResponseAI(clientInput, company, apiKey)
         : buildInstruction(analyzeClientResponse(clientInput), company)
       setInstruction(result)
-      setStage(result.isWon ? 'WON' : result.isLost ? 'LOST' : 'INSTRUCTING')
+      const finalStage = result.isWon ? 'WON' : result.isLost ? 'LOST' : 'INSTRUCTING'
+      setStage(finalStage)
+      const lead = useApp.getState().leads.find((l) => l.companyId === company?.id)
+      if (lead) {
+        if (finalStage === 'WON') moveLead(lead.id, 'WON')
+        if (finalStage === 'LOST') moveLead(lead.id, 'LOST')
+      }
     } catch (err) {
       toast('error', 'Erro ao analisar resposta. Usando modo demo.')
       const result = buildInstruction(analyzeClientResponse(clientInput), company)

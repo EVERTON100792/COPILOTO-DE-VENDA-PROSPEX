@@ -22,6 +22,7 @@ export default function Leads() {
   const [website, setWebsite] = useState('')
   const [opportunityFilter, setOpportunityFilter] = useState('')
   const [methodFilter, setMethodFilter] = useState('')
+  const [pipelineTab, setPipelineTab] = useState<'ALL'|'NEW'|'NEGOTIATION'|'WON'|'LOST'>('ALL')
   const [favoritesOnly, setFavoritesOnly] = useState(filterParam === 'favorites')
   const [importOpen, setImportOpen] = useState(false)
   const [mapsImportOpen, setMapsImportOpen] = useState(false)
@@ -54,6 +55,17 @@ export default function Leads() {
         )
       })
     }
+
+    if (pipelineTab === 'NEW') {
+      list = list.filter(l => ['NEW', 'QUALIFIED', 'READY_TO_CONTACT'].includes(l.status))
+    } else if (pipelineTab === 'NEGOTIATION') {
+      list = list.filter(l => ['CONTACTED', 'REPLIED', 'INTERESTED', 'NEGOTIATION', 'PROPOSAL_SENT'].includes(l.status))
+    } else if (pipelineTab === 'WON') {
+      list = list.filter(l => l.status === 'WON')
+    } else if (pipelineTab === 'LOST') {
+      list = list.filter(l => ['LOST', 'NO_RESPONSE', 'DO_NOT_CONTACT'].includes(l.status))
+    }
+
     if (status) list = list.filter((l) => l.status === status)
     if (city) list = list.filter((l) => companiesById.get(l.companyId)?.city === city)
     if (category) list = list.filter((l) => companiesById.get(l.companyId)?.category === category)
@@ -71,7 +83,7 @@ export default function Leads() {
       const qB = qualByLeadId.get(b.id)?.finalScore ?? b.score ?? 0
       return qB - qA
     })
-  }, [allLeads, companiesById, qualByLeadId, search, status, city, category, website, minScore, opportunityFilter, methodFilter, favoritesOnly])
+  }, [allLeads, companiesById, qualByLeadId, search, status, city, category, website, minScore, opportunityFilter, methodFilter, favoritesOnly, pipelineTab])
 
   const cities = useMemo(() => [...new Set(allLeads.map((l) => companiesById.get(l.companyId)?.city).filter(Boolean) as string[])], [allLeads, companiesById])
   const categories = useMemo(() => [...new Set(allLeads.map((l) => companiesById.get(l.companyId)?.category).filter(Boolean) as string[])], [allLeads, companiesById])
@@ -104,6 +116,24 @@ export default function Leads() {
           <Button variant="secondary" onClick={() => doExport(leads, 'json')}>Exportar JSON</Button>
           <Link to="/campaigns/new" className="btn btn-primary">+ Nova campanha</Link>
         </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: 10, marginBottom: 16, overflowX: 'auto', paddingBottom: 4 }}>
+        <Button variant={pipelineTab === 'ALL' ? 'primary' : 'secondary'} onClick={() => setPipelineTab('ALL')}>
+          📋 Todos
+        </Button>
+        <Button variant={pipelineTab === 'NEW' ? 'primary' : 'secondary'} onClick={() => setPipelineTab('NEW')}>
+          🌟 Novos / Frios
+        </Button>
+        <Button variant={pipelineTab === 'NEGOTIATION' ? 'primary' : 'secondary'} onClick={() => setPipelineTab('NEGOTIATION')}>
+          💬 Em Negociação
+        </Button>
+        <Button variant={pipelineTab === 'WON' ? 'primary' : 'secondary'} onClick={() => setPipelineTab('WON')}>
+          🏆 Ganhos (Clientes)
+        </Button>
+        <Button variant={pipelineTab === 'LOST' ? 'primary' : 'secondary'} onClick={() => setPipelineTab('LOST')}>
+          🗑️ Arquivo Morto
+        </Button>
       </div>
 
       <Card className="mb-16">

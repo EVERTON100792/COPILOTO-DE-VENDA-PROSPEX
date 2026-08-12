@@ -99,6 +99,12 @@ export default function LeadDetail() {
           </p>
         </div>
         <div className="page-actions">
+          {lead.status !== 'WON' && (
+            <Button variant="success" onClick={() => { changeLeadStatus(l.id, 'WON'); s.toast('success', '🏆 Lead marcado como Ganho!') }}>🏆 Marcar Ganho</Button>
+          )}
+          {lead.status !== 'LOST' && (
+            <Button variant="danger" onClick={() => { changeLeadStatus(l.id, 'LOST'); s.toast('success', '🗑️ Movido para Arquivo Morto') }}>🗑️ Arquivo Morto</Button>
+          )}
           <Button variant="primary" onClick={() => setDemoModalOpen(true)}>
             ⚡ Gerar Demonstração (Fase 5)
           </Button>
@@ -131,7 +137,21 @@ export default function LeadDetail() {
 
           <Card title="Contato">
             <ul className="contact-list">
-              {company?.phone && <li><span>📞</span><a href={`tel:${company.phone}`}>{company.phone}</a></li>}
+              {company?.phone && (
+                <li>
+                  <span>💬</span>
+                  <a 
+                    href={`https://wa.me/55${company.phone.replace(/\D/g, '')}`}
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    title="Abrir no WhatsApp"
+                    style={{ textDecoration: 'none', color: 'var(--fg)' }}
+                    className="hover-underline"
+                  >
+                    {company.phone}
+                  </a>
+                </li>
+              )}
               {wa && <li><span>💬</span><a href={wa} target="_blank" rel="noreferrer">WhatsApp</a></li>}
               {company?.email && <li><span>✉️</span><a href={`mailto:${company.email}`}>{company.email}</a></li>}
               {company?.website && <li><span>🌐</span><a href={company.website} target="_blank" rel="noreferrer">{company.website}</a></li>}

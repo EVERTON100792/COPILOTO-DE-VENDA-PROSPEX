@@ -18,6 +18,23 @@ export async function importFromMaps(name: string, city: string, url: string, pr
     return { success: false, error: 'O nome da empresa é obrigatório.' }
   }
 
+  // Anti-duplicação
+  const companies = store.companies;
+  const normalizeStr = (s: string) => s.replace(/\D/g, '');
+  const cleanPhone = prefilledData?.phone ? normalizeStr(prefilledData.phone) : '';
+  const cleanName = name.trim().toLowerCase();
+
+  const isDuplicate = companies.some(c => {
+    const cPhone = c.phone ? normalizeStr(c.phone) : '';
+    if (cleanPhone && cPhone && cPhone === cleanPhone) return true;
+    if (c.name.trim().toLowerCase() === cleanName) return true;
+    return false;
+  });
+
+  if (isDuplicate) {
+    return { success: false, error: `Atenção: A empresa '${name.trim()}' já foi prospectada anteriormente. Bloqueado por anti-duplicação.` }
+  }
+
   try {
     // 1. Busca dados adicionais na web via Tavily + IA (usando o agente de pesquisa)
     const searchData = await searchCompanyData({

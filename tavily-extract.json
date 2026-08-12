@@ -1,0 +1,11 @@
+{
+  "results": [],
+  "failed_results": [
+    {
+      "url": "https://www.google.com/maps/place/Pizzaria+Bate+Papo/@-23.5489,-46.6388,15z",
+      "error": "Failed to fetch url"
+    }
+  ],
+  "response_time": 2.83,
+  "request_id": "27192207-329c-4714-9352-81dc54f2e9ad"
+}

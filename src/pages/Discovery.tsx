@@ -260,7 +260,18 @@ export default function Discovery() {
                           {/* Info */}
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12, color: 'var(--muted)', marginBottom: 12 }}>
                             {company.city && <span style={{ display: 'flex', gap: 6 }}><span style={{ color: 'var(--primary)' }}>📍</span> {company.city}{company.state ? `/${company.state}` : ''}</span>}
-                            {company.phone && <span style={{ display: 'flex', gap: 6 }}><span style={{ color: 'var(--success)' }}>💬</span> {company.phone}</span>}
+                            {company.phone && (
+                              <a 
+                                href={`https://wa.me/55${company.phone.replace(/\D/g, '')}`} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                style={{ display: 'flex', gap: 6, color: 'var(--fg)', textDecoration: 'none' }}
+                                title="Abrir no WhatsApp"
+                              >
+                                <span style={{ color: 'var(--success)' }}>💬</span> 
+                                <span style={{ textDecoration: 'underline' }}>{company.phone}</span>
+                              </a>
+                            )}
                             {company.rating && <span style={{ display: 'flex', gap: 6 }}><span style={{ color: 'var(--warning)' }}>⭐</span> {company.rating.toFixed(1)} ({company.reviewCount || 0} avaliações)</span>}
                             {company.website && (
                               <a href={company.website} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--info)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', gap: 6 }}>
