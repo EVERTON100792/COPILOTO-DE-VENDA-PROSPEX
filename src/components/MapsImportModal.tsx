@@ -8,15 +8,15 @@ import type { ReactNode } from 'react'
 const IMAGE_STEPS = [
   "Iniciando motores da IA...",
   "Lendo a imagem com Visão Computacional (OCR)...",
-  "Analisando contexto e extraindo dados importantes...",
-  "Finalizando e estruturando JSON..."
+  "Analisando contexto e extraindo dados em lote...",
+  "Finalizando estruturação JSON..."
 ]
 
 const PROSPECT_STEPS = [
-  "Validando dados da empresa...",
+  "Validando dados das empresas...",
   "Buscando informações avançadas na Web...",
-  "Avaliando o nível de oportunidade (Lead Score)...",
-  "Cadastrando no CRM..."
+  "Avaliando nível de oportunidade (Lead Score)...",
+  "Cadastrando todos no CRM..."
 ]
 
 function PipelineUI({ steps, currentStep, title }: { steps: string[], currentStep: number, title: string }) {
@@ -34,7 +34,6 @@ function PipelineUI({ steps, currentStep, title }: { steps: string[], currentSte
         display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px',
         borderBottom: '1px dashed var(--border-soft)', paddingBottom: '16px'
       }}>
-        {/* Pulsing dot */}
         <div style={{ position: 'relative', display: 'flex', width: '12px', height: '12px' }}>
           <div style={{
             position: 'absolute', width: '100%', height: '100%', borderRadius: '50%',
@@ -94,335 +93,415 @@ function PipelineUI({ steps, currentStep, title }: { steps: string[], currentSte
   )
 }
 
+export type BatchItemStatus = 'empty' | 'pasted' | 'extracting' | 'extracted' | 'prospecting' | 'done' | 'error';
+
+export interface BatchItem {
+  id: string;
+  imagePreview: string | null;
+  data: any | null;
+  status: BatchItemStatus;
+  error?: string;
+}
+
 interface MapsImportModalProps {
   open: boolean
   onClose: () => void
 }
 
 export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
-  const [name, setName] = useState('')
-  const [city, setCity] = useState('')
-  const [category, setCategory] = useState('')
-  const [phone, setPhone] = useState('')
-  const [address, setAddress] = useState('')
-  const [rating, setRating] = useState<string>('')
-  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [batchSize, setBatchSize] = useState(1);
+  const [items, setItems] = useState<BatchItem[]>([]);
   
-  const [loading, setLoading] = useState(false)
-  const [loadingImage, setLoadingImage] = useState(false)
+  const [globalLoading, setGlobalLoading] = useState(false);
+  const [globalPhase, setGlobalPhase] = useState<'idle' | 'extracting' | 'prospecting'>('idle');
   
   const [imageStep, setImageStep] = useState(0)
   const [prospectStep, setProspectStep] = useState(0)
   
-  const [extractedData, setExtractedData] = useState<any>(null)
+  const cancelRef = useRef(false);
+  const toast = useApp(s => s.toast);
 
-  const cancelRef = useRef(false)
-
-  const toast = useApp(s => s.toast)
-
-  // Reseta os estados quando o modal for fechado
+  // Initialize/Reset
   useEffect(() => {
     if (!open) {
-      cancelRef.current = true
-      setName('')
-      setCity('')
-      setCategory('')
-      setPhone('')
-      setAddress('')
-      setRating('')
-      setImagePreview(null)
-      setExtractedData(null)
-      setLoading(false)
-      setLoadingImage(false)
-      setImageStep(0)
-      setProspectStep(0)
+      cancelRef.current = true;
+      setBatchSize(1);
+      setItems([{ id: '0', imagePreview: null, data: null, status: 'empty' }]);
+      setGlobalLoading(false);
+      setGlobalPhase('idle');
+      setImageStep(0);
+      setProspectStep(0);
+    } else {
+      cancelRef.current = false;
+      // Preenche com o batchSize atual (normalmente 1 na abertura)
+      const newItems: BatchItem[] = [];
+      for (let i = 0; i < batchSize; i++) {
+        newItems.push({ id: i.toString(), imagePreview: null, data: null, status: 'empty' });
+      }
+      setItems(newItems);
     }
-  }, [open])
+  }, [open]);
+
+  // Adjust array when batchSize changes
+  const handleBatchSizeChange = (newSize: number) => {
+    setBatchSize(newSize);
+    setItems(prev => {
+      const newItems = [...prev];
+      if (newItems.length < newSize) {
+        for (let i = newItems.length; i < newSize; i++) {
+          newItems.push({ id: Date.now().toString() + i, imagePreview: null, data: null, status: 'empty' });
+        }
+      } else if (newItems.length > newSize) {
+        newItems.splice(newSize);
+      }
+      return newItems;
+    });
+  };
 
   // Pipeline intervals
   useEffect(() => {
     let interval: any;
-    if (loadingImage) {
+    if (globalPhase === 'extracting') {
       setImageStep(0)
       interval = setInterval(() => {
         setImageStep(s => (s < IMAGE_STEPS.length - 1 ? s + 1 : s))
       }, 3000)
     }
     return () => clearInterval(interval)
-  }, [loadingImage])
+  }, [globalPhase])
 
   useEffect(() => {
     let interval: any;
-    if (loading) {
+    if (globalPhase === 'prospecting') {
       setProspectStep(0)
       interval = setInterval(() => {
         setProspectStep(s => (s < PROSPECT_STEPS.length - 1 ? s + 1 : s))
       }, 2500)
     }
     return () => clearInterval(interval)
-  }, [loading])
+  }, [globalPhase])
 
-  // Lida com colar imagem no modal
+  // Handle Paste
   useEffect(() => {
-    if (!open) return
+    if (!open || globalLoading) return;
 
     const handlePaste = (e: ClipboardEvent) => {
-      const items = e.clipboardData?.items
-      if (!items) return
+      const clipboardItems = e.clipboardData?.items;
+      if (!clipboardItems) return;
       
-      for (const item of items) {
+      for (const item of clipboardItems) {
         if (item.type.indexOf('image') === 0) {
-          const file = item.getAsFile()
-          if (file) handleImageFile(file)
-          break
+          const file = item.getAsFile();
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+              if (ev.target?.result) {
+                const imgData = ev.target.result as string;
+                setItems(prev => {
+                  const newItems = [...prev];
+                  const firstEmptyIndex = newItems.findIndex(x => x.status === 'empty');
+                  if (firstEmptyIndex !== -1) {
+                    newItems[firstEmptyIndex] = {
+                      ...newItems[firstEmptyIndex],
+                      imagePreview: imgData,
+                      status: 'pasted'
+                    };
+                  } else {
+                    toast('info', 'Todos os slots já estão preenchidos. Aumente o tamanho do lote se precisar de mais.');
+                  }
+                  return newItems;
+                });
+              }
+            };
+            reader.readAsDataURL(file);
+          }
+          break; // pega só a primeira imagem do clipboard
         }
       }
+    };
+
+    document.addEventListener('paste', handlePaste);
+    return () => document.removeEventListener('paste', handlePaste);
+  }, [open, globalLoading, toast]);
+
+  const processAllExtractions = async () => {
+    const toProcess = items.filter(i => i.status === 'pasted');
+    if (toProcess.length === 0) {
+      toast('error', 'Cole ao menos uma imagem para extrair.');
+      return;
     }
 
-    document.addEventListener('paste', handlePaste)
-    return () => document.removeEventListener('paste', handlePaste)
-  }, [open])
+    cancelRef.current = false;
+    setGlobalLoading(true);
+    setGlobalPhase('extracting');
 
-  const handleImageFile = (file: File) => {
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      if (e.target?.result) {
-        setImagePreview(e.target.result as string)
-      }
-    }
-    reader.readAsDataURL(file)
-  }
-
-  const processImage = async () => {
-    if (!imagePreview) return
+    const newItems = [...items];
     
-    cancelRef.current = false
-    setLoadingImage(true)
-    try {
-      toast('info', 'Analisando a imagem. Isso pode levar alguns segundos...')
-      const data = await extractDataFromImage(imagePreview)
-      if (cancelRef.current) return
-      
-      setName(data.name || '')
-      setCity(data.city || '')
-      setCategory(data.category || '')
-      setPhone(data.phone || '')
-      setAddress(data.address || '')
-      if (data.rating) setRating(data.rating.toString())
-      setExtractedData(data)
-      toast('success', 'Dados extraídos com sucesso! Revise e clique em Prospectar.')
-    } catch (err: any) {
-      toast('error', err.message || 'Erro ao processar imagem.')
-    } finally {
-      setLoadingImage(false)
-    }
-  }
+    // Processamento sequencial
+    for (let i = 0; i < newItems.length; i++) {
+      if (cancelRef.current) break;
+      if (newItems[i].status !== 'pasted' || !newItems[i].imagePreview) continue;
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!name.trim()) {
-      toast('error', 'Por favor, insira o nome da empresa ou utilize as formas de extração.')
-      return
-    }
+      newItems[i].status = 'extracting';
+      setItems([...newItems]);
 
-    cancelRef.current = false
-    setLoading(true)
-    try {
-      // Usa os dados extraídos, combinados com o que o usuário alterou nos inputs
-      const parsedRating = rating ? parseFloat(rating.replace(',', '.')) : undefined
-      const submitData = extractedData ? { ...extractedData, name, city, category, phone, address, rating: parsedRating } : { rating: parsedRating }
-      const result = await importFromMaps(name, city, '', submitData) 
-      if (cancelRef.current) return
-      
-      if (result.success) {
-        toast('success', `Empresa ${result.company?.name} cadastrada com sucesso!`)
-        onClose()
-      } else {
-        toast('error', result.error || 'Erro ao cadastrar empresa.')
+      try {
+        const data = await extractDataFromImage(newItems[i].imagePreview!);
+        if (cancelRef.current) break;
+        newItems[i].data = data;
+        newItems[i].status = 'extracted';
+      } catch (err: any) {
+        if (cancelRef.current) break;
+        newItems[i].status = 'error';
+        newItems[i].error = err.message || 'Erro ao processar';
       }
-    } catch (error) {
-      toast('error', 'Ocorreu um erro inesperado.')
-    } finally {
-      setLoading(false)
+      setItems([...newItems]);
     }
-  }
 
-  return (
-    <Modal open={open} onClose={onClose} title="Extração Inteligente de Empresa" wide>
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="text-center space-y-2 mb-6">
-          <p className="text-gray-300">
-            A IA analisará sua imagem para extrair os dados automaticamente.
-          </p>
-          <p className="text-sm text-gray-500">
-            Copie qualquer imagem (Google Maps, sites, cartões) e pressione <kbd className="bg-gray-800 border border-gray-700 px-1.5 py-0.5 rounded text-xs">Ctrl+V</kbd> nesta tela.
-          </p>
-        </div>
+    if (!cancelRef.current) {
+      toast('success', 'Extração concluída! Revise e clique em Prospectar em Massa.');
+      setGlobalLoading(false);
+      setGlobalPhase('idle');
+    }
+  };
+
+  const processAllProspecting = async () => {
+    const toProcess = items.filter(i => i.status === 'extracted');
+    if (toProcess.length === 0) {
+      toast('error', 'Nenhuma empresa pronta para prospectar.');
+      return;
+    }
+
+    cancelRef.current = false;
+    setGlobalLoading(true);
+    setGlobalPhase('prospecting');
+
+    const newItems = [...items];
+
+    for (let i = 0; i < newItems.length; i++) {
+      if (cancelRef.current) break;
+      if (newItems[i].status !== 'extracted' || !newItems[i].data) continue;
+
+      newItems[i].status = 'prospecting';
+      setItems([...newItems]);
+
+      try {
+        const d = newItems[i].data;
+        const parsedRating = d.rating ? parseFloat(d.rating.replace(',', '.')) : undefined;
+        const submitData = { ...d, rating: parsedRating };
+        // Assume o nome vindo da IA; se não houver, coloca Sem Nome
+        const result = await importFromMaps(d.name || 'Sem Nome', d.city || '', '', submitData);
         
-        {!imagePreview ? (
-          <div 
-            className="group relative overflow-hidden border-2 border-dashed border-gray-700 bg-gray-900/60 transition-all duration-300 rounded-2xl p-12 flex flex-col items-center justify-center shadow-inner"
-          >
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            <div className="bg-gray-800 p-4 rounded-full shadow-xl mb-4 group-hover:scale-110 transition-transform duration-300 border border-gray-700">
-              <span className="text-4xl block translate-y-px">📋</span>
-            </div>
-            <span className="text-gray-300 font-medium text-lg text-center leading-relaxed">
-              Pressione <kbd className="bg-gray-800 border border-gray-700 px-1.5 py-0.5 rounded text-sm text-primary mx-1">Ctrl+V</kbd><br/> para colar o print aqui
-            </span>
+        if (cancelRef.current) break;
+        
+        if (result.success) {
+          newItems[i].status = 'done';
+        } else {
+          newItems[i].status = 'error';
+          newItems[i].error = result.error;
+        }
+      } catch (err: any) {
+        if (cancelRef.current) break;
+        newItems[i].status = 'error';
+        newItems[i].error = 'Erro inesperado';
+      }
+      setItems([...newItems]);
+    }
+
+    if (!cancelRef.current) {
+      toast('success', 'Prospecção em massa finalizada!');
+      setGlobalLoading(false);
+      setGlobalPhase('idle');
+      // Fecha o modal após 2 segundos de sucesso total
+      setTimeout(() => onClose(), 2000);
+    }
+  };
+
+  const handleCancel = () => {
+    cancelRef.current = true;
+    setGlobalLoading(false);
+    setGlobalPhase('idle');
+    toast('info', 'Processo em lote cancelado.');
+  };
+
+  const updateItemData = (index: number, field: string, value: string) => {
+    setItems(prev => {
+      const newItems = [...prev];
+      if (newItems[index].data) {
+        newItems[index].data = { ...newItems[index].data, [field]: value };
+      }
+      return newItems;
+    });
+  };
+
+  // Helper para renderizar o card individual
+  const renderCard = (item: BatchItem, index: number) => {
+    return (
+      <div key={item.id} className="relative bg-gray-900/80 border border-gray-700 rounded-xl overflow-hidden shadow-sm flex flex-col h-[280px] transition-all hover:border-gray-600">
+        
+        {/* Status Badge */}
+        <div className="absolute top-2 right-2 z-10 flex gap-2">
+          {item.status === 'extracting' && <span className="bg-primary/90 text-white text-xs px-2 py-1 rounded shadow animate-pulse">Lendo...</span>}
+          {item.status === 'prospecting' && <span className="bg-primary/90 text-white text-xs px-2 py-1 rounded shadow animate-pulse">Prospectando...</span>}
+          {item.status === 'extracted' && <span className="bg-yellow-500 text-black font-bold text-xs px-2 py-1 rounded shadow">Pronto para Prospectar</span>}
+          {item.status === 'done' && <span className="bg-success text-white text-xs px-2 py-1 rounded shadow">Concluído ✓</span>}
+          {item.status === 'error' && <span className="bg-danger text-white text-xs px-2 py-1 rounded shadow">Erro</span>}
+          {item.status === 'empty' && <span className="bg-gray-800 text-gray-400 text-xs px-2 py-1 rounded shadow">Vazio</span>}
+          
+          {item.imagePreview && item.status !== 'empty' && item.status !== 'extracting' && item.status !== 'prospecting' && (
+            <button 
+              type="button"
+              onClick={() => {
+                setItems(prev => {
+                  const arr = [...prev];
+                  arr[index] = { ...arr[index], imagePreview: null, data: null, status: 'empty' };
+                  return arr;
+                });
+              }}
+              className="bg-red-500/80 hover:bg-red-500 text-white text-xs w-6 h-6 rounded flex items-center justify-center transition-colors"
+            >
+              ×
+            </button>
+          )}
+        </div>
+
+        {item.status === 'empty' ? (
+          <div className="flex-1 flex flex-col items-center justify-center p-4 text-center border-2 border-dashed border-gray-700/50 m-2 rounded-lg bg-gray-900/40">
+            <span className="text-3xl mb-2 opacity-50">📋</span>
+            <span className="text-gray-400 text-sm">Cole a imagem (Ctrl+V)</span>
           </div>
         ) : (
-          <div className="space-y-4">
-            <div className="relative rounded-2xl overflow-hidden border border-gray-700 bg-black/40 flex items-center justify-center h-48 shadow-lg ring-1 ring-white/5">
-              <img src={imagePreview} alt="Preview" className="max-h-full max-w-full object-contain drop-shadow-xl" />
-              <button 
-                type="button"
-                onClick={() => setImagePreview(null)}
-                className="absolute top-3 right-3 bg-red-500/90 hover:bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center transition-colors shadow-lg"
-              >
-                ×
-              </button>
+          <>
+            {/* Image Preview Area */}
+            <div className="h-28 bg-black flex items-center justify-center border-b border-gray-800 relative">
+               {item.imagePreview && <img src={item.imagePreview} alt="Print" className="h-full w-full object-cover opacity-60" />}
             </div>
-            {loadingImage ? (
-              <div className="flex flex-col items-center gap-4">
-                <PipelineUI steps={IMAGE_STEPS} currentStep={imageStep} title="IA TRABALHANDO NOS DADOS..." />
-                <button
-                  type="button"
-                  onClick={() => {
-                    cancelRef.current = true;
-                    setLoadingImage(false);
-                    setImageStep(0);
-                    toast('info', 'Extração cancelada.');
-                  }}
-                  className="text-gray-400 hover:text-white text-sm font-medium transition-colors underline decoration-gray-600 underline-offset-4"
-                >
-                  Cancelar extração
-                </button>
-              </div>
-            ) : (
-              <Button 
-                type="button" 
-                variant="primary" 
-                onClick={processImage} 
-                disabled={loading}
-                className="w-full py-4 text-base font-semibold shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all"
-              >
-                ✨ Mágica: Extrair Dados com IA
-              </Button>
-            )}
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-4">
-          <Field label="Nome da Empresa">
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="input w-full bg-gray-900/50"
-              placeholder="Ex: Pizzaria Bate Papo"
-              required
-              disabled={loading}
-            />
-          </Field>
-          
-          <Field label="Cidade">
-            <input
-              type="text"
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              className="input w-full bg-gray-900/50"
-              placeholder="Ex: São Paulo"
-              disabled={loading}
-            />
-          </Field>
-          
-          <Field label="Nicho/Categoria (para a IA buscar)">
-            <input
-              type="text"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="input w-full bg-gray-900/50"
-              placeholder="Ex: Serviços Jurídicos"
-              disabled={loading}
-            />
-          </Field>
-
-          <Field label="Telefone">
-            <input
-              type="text"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="input w-full bg-gray-900/50"
-              placeholder="Ex: (11) 99999-9999"
-              disabled={loading}
-            />
-          </Field>
-
-          <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-5">
-            <Field label="Endereço">
-              <input
-                type="text"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                className="input w-full bg-gray-900/50"
-                placeholder="Ex: Rua das Flores, 123"
-                disabled={loading}
-              />
-            </Field>
-
-            <Field label="Avaliações (Google)">
-              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                <input
-                  type="text"
-                  value={rating}
-                  onChange={(e) => setRating(e.target.value)}
-                  className="input w-full bg-gray-900/50"
-                  style={{ paddingRight: '100px' }}
-                  placeholder="Ex: 4.8"
-                  disabled={loading}
-                />
-                {rating && !isNaN(parseFloat(rating.replace(',', '.'))) && (
-                  <div style={{ position: 'absolute', right: '12px', display: 'flex', gap: '2px', fontSize: '13px', pointerEvents: 'none', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}>
-                    {Array.from({ length: Math.min(5, Math.round(parseFloat(rating.replace(',', '.')))) }).map((_, i) => (
-                      <span key={i}>⭐</span>
-                    ))}
+            
+            {/* Form / Data Area */}
+            <div className="p-3 flex-1 overflow-y-auto flex flex-col gap-2">
+              {item.status === 'extracting' || item.status === 'prospecting' ? (
+                <div className="flex-1 flex flex-col items-center justify-center text-center">
+                  <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mb-2" />
+                  <span className="text-xs text-gray-400">{item.status === 'extracting' ? 'Analisando...' : 'Prospectando...'}</span>
+                </div>
+              ) : item.data ? (
+                <>
+                  <input 
+                    className="bg-transparent border-b border-gray-700 text-sm font-semibold text-white px-1 py-1 w-full focus:border-primary outline-none" 
+                    value={item.data.name || ''} 
+                    onChange={e => updateItemData(index, 'name', e.target.value)}
+                    placeholder="Nome da Empresa"
+                    disabled={globalLoading || item.status === 'done'}
+                  />
+                  <input 
+                    className="bg-transparent border-b border-gray-700 text-xs text-gray-300 px-1 py-1 w-full focus:border-primary outline-none" 
+                    value={item.data.category || ''} 
+                    onChange={e => updateItemData(index, 'category', e.target.value)}
+                    placeholder="Nicho/Categoria"
+                    disabled={globalLoading || item.status === 'done'}
+                  />
+                  <div className="flex gap-2">
+                    <input 
+                      className="bg-transparent border-b border-gray-700 text-xs text-gray-400 px-1 py-1 w-full focus:border-primary outline-none" 
+                      value={item.data.city || ''} 
+                      onChange={e => updateItemData(index, 'city', e.target.value)}
+                      placeholder="Cidade"
+                      disabled={globalLoading || item.status === 'done'}
+                    />
+                    <input 
+                      className="bg-transparent border-b border-gray-700 text-xs text-yellow-400 px-1 py-1 w-12 text-center focus:border-primary outline-none" 
+                      value={item.data.rating || ''} 
+                      onChange={e => updateItemData(index, 'rating', e.target.value)}
+                      placeholder="Nota"
+                      title="Avaliações"
+                      disabled={globalLoading || item.status === 'done'}
+                    />
                   </div>
-                )}
-              </div>
-            </Field>
+                  {item.error && <p className="text-danger text-xs mt-1 leading-tight">{item.error}</p>}
+                </>
+              ) : (
+                <div className="flex-1 flex items-center justify-center">
+                  <span className="text-xs text-gray-500">Imagem colada. Aguardando extração.</span>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <Modal open={open} onClose={onClose} title="Extração Inteligente em Massa" wide>
+      <div className="space-y-6">
+        
+        {/* Header Options */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gray-900/50 p-4 rounded-xl border border-gray-800">
+          <div>
+            <h3 className="text-white font-medium">Lote de Importação</h3>
+            <p className="text-gray-400 text-sm">Quantas empresas deseja processar de uma vez?</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-gray-300">Quantidade:</span>
+            <select 
+              value={batchSize} 
+              onChange={e => handleBatchSizeChange(Number(e.target.value))}
+              disabled={globalLoading}
+              className="bg-gray-800 border border-gray-700 text-white text-sm rounded-lg focus:ring-primary focus:border-primary block p-2 outline-none cursor-pointer"
+            >
+              {Array.from({ length: 14 }, (_, i) => i + 1).map(n => (
+                <option key={n} value={n}>{n} {n === 1 ? 'empresa' : 'empresas'}</option>
+              ))}
+            </select>
           </div>
         </div>
 
-        <div className={`flex ${loading ? 'flex-col items-center' : 'justify-end gap-3'} mt-8 pt-6 border-t border-gray-800/60`}>
-          {loading ? (
-            <div className="flex flex-col items-center gap-4 w-full">
-              <PipelineUI steps={PROSPECT_STEPS} currentStep={prospectStep} title="CRIANDO PROSPECÇÃO..." />
-              <button
-                type="button"
-                onClick={() => {
-                  cancelRef.current = true;
-                  setLoading(false);
-                  setProspectStep(0);
-                  toast('info', 'Criação cancelada.');
-                }}
-                className="text-gray-400 hover:text-white text-sm font-medium transition-colors underline decoration-gray-600 underline-offset-4"
-              >
-                Cancelar processo
-              </button>
-            </div>
-          ) : (
+        {/* Global Loading UI */}
+        {globalLoading && (
+          <div className="flex flex-col items-center gap-4 w-full bg-black/20 p-6 rounded-2xl border border-primary/20">
+            <PipelineUI 
+              steps={globalPhase === 'extracting' ? IMAGE_STEPS : PROSPECT_STEPS} 
+              currentStep={globalPhase === 'extracting' ? imageStep : prospectStep} 
+              title={globalPhase === 'extracting' ? 'IA TRABALHANDO EM MASSA...' : 'CRIANDO PROSPECÇÕES...'} 
+            />
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="text-gray-400 hover:text-white text-sm font-medium transition-colors underline decoration-gray-600 underline-offset-4"
+            >
+              Cancelar Lote
+            </button>
+          </div>
+        )}
+        
+        {/* Grid de Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          {items.map((item, idx) => renderCard(item, idx))}
+        </div>
+
+        {/* Footer Actions */}
+        <div className={`flex ${globalLoading ? 'justify-center' : 'justify-end gap-3'} mt-8 pt-6 border-t border-gray-800/60`}>
+          {!globalLoading && (
             <>
-              <Button type="button" variant="secondary" onClick={onClose} disabled={loadingImage}>
+              <Button type="button" variant="secondary" onClick={onClose} disabled={globalLoading}>
                 Cancelar
               </Button>
-              <Button type="submit" variant="primary" disabled={loadingImage || !name}>
-                Confirmar e Prospectar
-              </Button>
+              
+              {items.some(i => i.status === 'pasted') && (
+                <Button type="button" variant="primary" onClick={processAllExtractions} disabled={globalLoading} className="shadow-lg shadow-primary/20">
+                  ✨ Extrair em Massa
+                </Button>
+              )}
+              
+              {items.some(i => i.status === 'extracted') && (
+                <Button type="button" variant="primary" onClick={processAllProspecting} disabled={globalLoading} className="bg-success hover:bg-green-600 shadow-lg shadow-success/20">
+                  🚀 Confirmar e Prospectar em Massa
+                </Button>
+              )}
             </>
           )}
         </div>
-      </form>
+      </div>
     </Modal>
   )
 }
