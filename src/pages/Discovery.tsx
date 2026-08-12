@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { BorderBeamPanel } from '../components/ui/BorderBeamPanel'
+import { DotCard } from '../components/ui/DotCard'
 import { useApp } from '../services/store'
 import { Card, Button, Badge, EmptyState } from '../components/ui'
 import { formatDateTime } from '../lib/utils'
@@ -204,7 +204,7 @@ export default function Discovery() {
                     const icon = categoryIcon(company.category)
                     const hasLead = leadsByCompany.has(company.id)
                     return (
-                      <BorderBeamPanel key={company.id} className="card card-hover" style={{ display: 'flex', flexDirection: 'column', padding: 20 }} beams={2} thickness={2} radius={24} glow={true}>
+                      <DotCard key={company.id} className="card card-hover" style={{ display: 'flex', flexDirection: 'column', padding: 24 }}>
                         {/* Header */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
                           <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
@@ -310,7 +310,7 @@ export default function Discovery() {
                             🗺️
                           </a>
                         </div>
-                      </BorderBeamPanel>
+                      </DotCard>
                     )
                   })}
                 </div>
