@@ -4,6 +4,7 @@
 
 import type { Company } from '../types'
 import { callAI } from './aiClient'
+import { useApp } from './store'
 import { SALES_BRAIN_PROMPT } from './salesBrainPrompt'
 
 export type SalesResponseCategory =
@@ -91,7 +92,13 @@ export function generateOpeningMessage(company: Company | any): string {
 }
 
 export async function generateOpeningMessageAI(company: Company | any, apiKey?: string): Promise<string> {
-  if (!apiKey) return generateOpeningMessage(company)
+  // Modo demo (settings) → template determinístico, sem custo.
+  if (useApp.getState().settings.demoMode) return generateOpeningMessage(company)
+
+  // Em produção a chave vive no servidor (proxy Netlify / proxy do Vite em dev).
+  // O parâmetro apiKey é opcional (chave salva pelo usuário em Settings);
+  // mesmo sem ele, a chamada é roteada pelo proxy que injeta a autenticação.
+  void apiKey
 
   const extraFacts = [
     company?.summary ? `Resumo do negócio: ${company.summary}` : '',

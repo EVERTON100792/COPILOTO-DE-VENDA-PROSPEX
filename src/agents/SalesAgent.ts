@@ -6,6 +6,7 @@ import {
   generateOpeningMessage,
   generateOpeningMessageAI,
 } from '../services/salesAI'
+import { useApp } from '../services/store'
 import type { AgentContext } from './types'
 import type { Company } from '../types'
 
@@ -34,12 +35,16 @@ export class SalesAgent extends BaseAgent {
   protected async runCore(input: Record<string, unknown>): Promise<SalesAgentOutput> {
     const company = input.company as Company | any
     const clientResponse = input.clientResponse as string
-    const apiKey = (input.apiKey as string | undefined) || (import.meta.env.VITE_AI_API_KEY as string | undefined) || ''
+    void input.apiKey
 
+    const demoMode = (input.demoMode as boolean | undefined) ?? useApp.getState().settings.demoMode
 
-    const result = apiKey
-      ? await analyzeClientResponseAI(clientResponse, company, apiKey)
-      : buildInstruction(analyzeClientResponse(clientResponse), company)
+    // Modo demo → motor de regras determinístico.
+    // Produção → IA sempre tentada (proxy injeta a chave); analyzeClientResponseAI
+    // já tem fallback interno para o motor de regras.
+    const result = demoMode
+      ? buildInstruction(analyzeClientResponse(clientResponse), company)
+      : await analyzeClientResponseAI(clientResponse, company, '')
 
     return {
       category: result.analysis.category,
@@ -56,8 +61,7 @@ export class SalesAgent extends BaseAgent {
 }
 
 export async function getOpeningMessage(company: Company | any, apiKey?: string): Promise<string> {
-  if (apiKey) {
-    return generateOpeningMessageAI(company, apiKey)
-  }
-  return generateOpeningMessage(company)
+  // IA sempre tentada; proxy no servidor injeta a chave. Fallback interno p/ template.
+  void apiKey
+  return generateOpeningMessageAI(company)
 }

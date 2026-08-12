@@ -201,9 +201,9 @@ export const SalesConversationModal: React.FC<Props> = ({ open, company, leadId,
     setAnalyzing(true)
     setStage('ANALYZING')
     try {
-      const result = apiKey
-        ? await analyzeClientResponseAI(clientInput, company, apiKey)
-        : buildInstruction(analyzeClientResponse(clientInput), company)
+      const result = settings.demoMode
+        ? buildInstruction(analyzeClientResponse(clientInput), company)
+        : await analyzeClientResponseAI(clientInput, company, apiKey)
       setInstruction(result)
       const finalStage = result.isWon ? 'WON' : result.isLost ? 'LOST' : 'INSTRUCTING'
       setStage(finalStage)
@@ -286,7 +286,7 @@ export const SalesConversationModal: React.FC<Props> = ({ open, company, leadId,
           {stage === 'WON' && '🎉 Venda Fechada!'}
           {stage === 'LOST' && 'Não Interessado'}
         </Badge>
-        {apiKey && <Badge variant="info">IA Real ({providerLabel})</Badge>}
+        {!settings.demoMode && <Badge variant="info">IA Real ({providerLabel})</Badge>}
       </div>
     }>
       <div style={{ display: 'grid', gridTemplateColumns: generatedDemo ? '350px 1fr' : '1fr', gap: 24, transition: 'all 0.3s ease' }}>
@@ -465,7 +465,7 @@ export const SalesConversationModal: React.FC<Props> = ({ open, company, leadId,
                 animation: 'pulseText 2s ease-in-out infinite',
                 letterSpacing: '-0.5px'
               }}>
-                {apiKey ? `${providerLabel} Analisando...` : 'Analisando com IA de Vendas...'}
+                {settings.demoMode ? 'Analisando com IA de Vendas...' : `${providerLabel} Analisando...`}
               </div>
               <div style={{ 
                 color: 'var(--muted)', fontSize: 13, display: 'flex', gap: 12, 

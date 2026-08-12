@@ -15,7 +15,7 @@ export const DEFAULT_SCORE_WEIGHTS: ScoreWeights = {
 }
 
 export const DEFAULT_SETTINGS: GlobalSettings = {
-  demoMode: true,
+  demoMode: (import.meta.env.VITE_DEMO_MODE ?? 'true') === 'true',
   masterSwitch: 'ON',
   scoreWeights: DEFAULT_SCORE_WEIGHTS,
   dailyContactLimit: 20,

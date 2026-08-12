@@ -106,6 +106,24 @@ class DemoProvider implements AIProvider {
   }
 }
 
+/**
+ * Provedor OpenCode via proxy do servidor (Netlify Function / proxy do Vite).
+ * Usado quando a chave NÃO está no navegador: o proxy injeta a autenticação.
+ */
+class OpenCodeProxyProvider implements AIProvider {
+  readonly name = 'opencode-proxy'
+  async generate(req: AIRequest): Promise<AIResponse> {
+    const { callAI } = await import('../../services/aiClient')
+    const text = await callAI({
+      systemPrompt: req.system || '',
+      userMessage: req.prompt,
+      temperature: req.temperature ?? 0.4,
+      maxTokens: req.maxTokens ?? 900,
+    })
+    return { text, provider: this.name, tokens: 0, estimatedCostUsd: 0 }
+  }
+}
+
 export function getAiProvider(): AIProvider {
   const storeSettings = useApp.getState().settings
   const isDemo = storeSettings?.demoMode ?? env.demoMode
@@ -117,6 +135,13 @@ export function getAiProvider(): AIProvider {
   const storeKey = storeSettings?.aiApiKey
   const key = storeKey !== undefined && storeKey !== '' ? storeKey : (env.aiApiKey || '')
   const provider = storeSettings?.aiProvider || env.aiProvider
+  const baseUrl = storeSettings?.aiBaseUrl || ''
+
+  // Sem chave no navegador: se o endpoint configurado for OpenCode,
+  // roteia pelo proxy do servidor (que injeta a chave).
+  if (!key && baseUrl.includes('opencode.ai')) {
+    return new OpenCodeProxyProvider()
+  }
 
   if (key && provider && provider !== 'openrouter') {
     return new OpenAiCompatibleProvider(provider)
