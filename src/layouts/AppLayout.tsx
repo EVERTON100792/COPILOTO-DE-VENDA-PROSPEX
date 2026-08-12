@@ -4,6 +4,7 @@ import { APP_NAME } from '../config/env'
 import { timeAgo } from '../lib/utils'
 import { useState } from 'react'
 import { Modal } from '../components/ui'
+import { GenerativeBg } from '../components/ui/GenerativeBg'
 
 const NAV = [
   { section: 'Visão geral', items: [{ to: '/', label: 'Dashboard', icon: '📊' }] },
@@ -57,6 +58,7 @@ export function AppLayout() {
 
   return (
     <div className="app-shell">
+      <GenerativeBg />
       {/* Overlay para mobile */}
       {mobileMenuOpen && (
         <div className="mobile-overlay" onClick={() => setMobileMenuOpen(false)}></div>
