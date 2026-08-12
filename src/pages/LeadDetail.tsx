@@ -21,6 +21,15 @@ import { QualificationService } from '../services/qualification'
 import { OutreachService } from '../services/outreach'
 import { ResponseClassificationService } from '../services/responseClassification'
 import type { ResponseAnalysis } from '../types'
+import { Phone, Mail, Globe, Star, Clock, Database, Tag, ShieldCheck, Play, ArrowLeft, Heart, Calendar } from 'lucide-react'
+
+const Instagram = (props: any) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
+);
+
+const Facebook = (props: any) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+);
 
 const VERSION_LABELS: Record<LeadMessage['version'], string> = {
   short: 'Direta (curta)',
@@ -115,21 +124,21 @@ export default function LeadDetail() {
         </div>
       </div>
 
-      <div className="grid" style={{ gridTemplateColumns: '280px 1fr' }}>
+      <div className="grid" style={{ gridTemplateColumns: '320px 1fr', gap: '24px' }}>
         <div className="flex col gap-16">
-          <Card className="ta-center">
+          <Card className="ta-center" style={{ padding: '24px' }}>
             <ScoreBadge score={lead.score} />
             <div className="mt-8">
               <Badge variant="violet">{tierLabel(lead.tier)}</Badge>
             </div>
             <div className="mt-12">
-              <select className="select" value={lead.status} onChange={(e) => handleStatusChange(e.target.value)}>
+              <select className="select" style={{ width: '100%', textAlign: 'center' }} value={lead.status} onChange={(e) => handleStatusChange(e.target.value)}>
                 {PIPELINE_ORDER.map((st) => (
                   <option key={st} value={st}>{statusLabel(st)}</option>
                 ))}
               </select>
             </div>
-            <div className="small muted mt-12">
+            <div className="small muted mt-12" style={{ borderTop: '1px dashed rgba(255,255,255,0.08)', paddingTop: '12px' }}>
               Criado {timeAgo(lead.createdAt)}<br />
               Atualizado {timeAgo(lead.updatedAt)}
             </div>
@@ -139,41 +148,74 @@ export default function LeadDetail() {
             <ul className="contact-list">
               {company?.phone && (
                 <li>
-                  <span>💬</span>
+                  <Phone size={16} className="text-primary" style={{ color: '#a78bfa' }} />
                   <a 
                     href={`https://wa.me/55${company.phone.replace(/\D/g, '')}`}
                     target="_blank" 
                     rel="noopener noreferrer"
                     title="Abrir no WhatsApp"
-                    style={{ textDecoration: 'none', color: 'var(--fg)' }}
-                    className="hover-underline"
                   >
-                    {company.phone}
+                    {company.phone} (WhatsApp)
                   </a>
                 </li>
               )}
-              {wa && <li><span>💬</span><a href={wa} target="_blank" rel="noreferrer">WhatsApp</a></li>}
-              {company?.email && <li><span>✉️</span><a href={`mailto:${company.email}`}>{company.email}</a></li>}
-              {company?.website && <li><span>🌐</span><a href={company.website} target="_blank" rel="noreferrer">{company.website}</a></li>}
-              {company?.instagram && <li><span>📸</span><a href={company.instagram} target="_blank" rel="noreferrer">{company.instagram}</a></li>}
-              {company?.facebook && <li><span>👍</span><a href={company.facebook} target="_blank" rel="noreferrer">{company.facebook}</a></li>}
+              {company?.email && (
+                <li>
+                  <Mail size={16} style={{ color: '#a78bfa' }} />
+                  <a href={`mailto:${company.email}`}>{company.email}</a>
+                </li>
+              )}
+              {company?.website && (
+                <li>
+                  <Globe size={16} style={{ color: '#a78bfa' }} />
+                  <a href={company.website} target="_blank" rel="noreferrer">Website oficial ↗</a>
+                </li>
+              )}
+              {company?.instagram && (
+                <li>
+                  <Instagram size={16} style={{ color: '#a78bfa' }} />
+                  <a href={company.instagram} target="_blank" rel="noreferrer">Instagram ↗</a>
+                </li>
+              )}
+              {company?.facebook && (
+                <li>
+                  <Facebook size={16} style={{ color: '#a78bfa' }} />
+                  <a href={company.facebook} target="_blank" rel="noreferrer">Facebook ↗</a>
+                </li>
+              )}
             </ul>
-            <div className="small muted mt-8">
-              {company?.rating != null && <>⭐ {company.rating} ({company.reviewCount ?? 0} avaliações)<br /></>}
-              {company?.hours && <>{company.hours}<br /></>}
-              Origem: {company?.source ?? '—'}
+            <div className="small muted mt-12" style={{ borderTop: '1px dashed rgba(255,255,255,0.08)', paddingTop: '12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              {company?.rating != null && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Star size={14} fill="#f59e0b" color="#f59e0b" /> 
+                  <span>{company.rating} ({company.reviewCount ?? 0} avaliações)</span>
+                </div>
+              )}
+              {company?.hours && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Clock size={14} /> 
+                  <span>{company.hours}</span>
+                </div>
+              )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Database size={14} /> 
+                <span>Origem: {company?.source ?? '—'}</span>
+              </div>
             </div>
           </Card>
 
           <CompanySourcePanel company={company ?? undefined} />
 
           <Card title="Presença digital">
-            <div className="small">
-              <div className="flex justify-between mb-4"><span>Website</span><Badge variant={websiteVariant(lead.websiteStatus)}>{WEBSITE_STATUS_LABELS[lead.websiteStatus] ?? lead.websiteStatus}</Badge></div>
-              <div className="flex justify-between mb-4"><span>WhatsApp</span>{lead.hasWhatsapp ? '✅' : '❌'}</div>
-              <div className="flex justify-between mb-4"><span>Instagram</span>{lead.hasInstagram ? '✅' : '❌'}</div>
-              <div className="flex justify-between mb-4"><span>Facebook</span>{lead.hasFacebook ? '✅' : '❌'}</div>
-              <div className="flex justify-between"><span>Score digital</span><b>{lead.digitalPresenceScore ?? '—'}%</b></div>
+            <div className="small" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div className="flex justify-between items-center"><span>Website</span><Badge variant={websiteVariant(lead.websiteStatus)}>{WEBSITE_STATUS_LABELS[lead.websiteStatus] ?? lead.websiteStatus}</Badge></div>
+              <div className="flex justify-between items-center"><span>WhatsApp</span><span>{lead.hasWhatsapp ? '✅ Sim' : '❌ Não'}</span></div>
+              <div className="flex justify-between items-center"><span>Instagram</span><span>{lead.hasInstagram ? '✅ Sim' : '❌ Não'}</span></div>
+              <div className="flex justify-between items-center"><span>Facebook</span><span>{lead.hasFacebook ? '✅ Sim' : '❌ Não'}</span></div>
+              <div className="flex justify-between items-center" style={{ borderTop: '1px dashed rgba(255,255,255,0.08)', paddingTop: '8px', marginTop: '4px' }}>
+                <span>Score digital</span>
+                <b style={{ color: 'var(--primary)', fontSize: '15px' }}>{lead.digitalPresenceScore ?? '—'}%</b>
+              </div>
             </div>
           </Card>
 

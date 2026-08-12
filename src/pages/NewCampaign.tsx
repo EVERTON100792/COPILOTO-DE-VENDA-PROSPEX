@@ -563,14 +563,14 @@ export default function NewCampaign() {
                 </Field>
                 <div className="card mt-16" style={{ background: 'var(--bg)' }}>
                   <h3>Revisão da campanha</h3>
-                  <div className="kv">
-                    <dt>Segmento</dt><dd>{nicheName}</dd>
-                    <dt>Localização</dt><dd>{city} - {state}</dd>
-                    <dt>Quantidade</dt><dd>{quantity}</dd>
-                    <dt>Fonte</dt><dd>{selectedProvider.name}</dd>
-                    <dt>Modo</dt><dd>{mode === 'DEMO' ? '🔵 Demo' : mode === 'REAL' ? '🟢 Real' : '🟡 Híbrido'}</dd>
-                    <dt>Oferta</dt><dd>{offer.product} — R$ {offer.price}</dd>
-                    <dt>Critérios</dt><dd>{criteriaSummary()}</dd>
+                  <div>
+                    <div className="kv"><dt>Segmento</dt><dd>{nicheName}</dd></div>
+                    <div className="kv"><dt>Localização</dt><dd>{city} - {state}</dd></div>
+                    <div className="kv"><dt>Quantidade</dt><dd>{quantity}</dd></div>
+                    <div className="kv"><dt>Fonte</dt><dd>{selectedProvider.name}</dd></div>
+                    <div className="kv"><dt>Modo</dt><dd>{mode === 'DEMO' ? '🔵 Demo' : mode === 'REAL' ? '🟢 Real' : '🟡 Híbrido'}</dd></div>
+                    <div className="kv"><dt>Oferta</dt><dd>{offer.product} — R$ {offer.price}</dd></div>
+                    <div className="kv"><dt>Critérios</dt><dd>{criteriaSummary()}</dd></div>
                   </div>
                 </div>
               </div>

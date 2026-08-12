@@ -57,16 +57,28 @@ export function CompanySourcePanel({ company }: { company: Company | undefined }
         <h3 className="mb-8">Fonte dos dados</h3>
         <DataStatusBadge status={company.dataStatus} />
       </div>
-      <div className="kv">
-        <dt>Fonte</dt><dd>{company.source ?? '—'}</dd>
-        <dt>Obtido em</dt><dd>{company.retrievedAt ? formatDateTime(company.retrievedAt) : '—'}</dd>
-        <dt>Última atualização</dt><dd>{company.lastVerifiedAt ? formatDateTime(company.lastVerifiedAt) : '—'}</dd>
-        <dt>Confiança</dt><dd><ConfidenceTag confidence={company.discoveryConfidence} /></dd>
-        {company.sourceUrl && <><dt>Link da fonte</dt><dd><a href={company.sourceUrl} target="_blank" rel="noreferrer" className="link">Abrir fonte ↗</a></dd></>}
+      <div>
+        <div className="kv">
+          <dt>Fonte</dt><dd>{company.source ?? '—'}</dd>
+        </div>
+        <div className="kv">
+          <dt>Obtido em</dt><dd>{company.retrievedAt ? formatDateTime(company.retrievedAt) : '—'}</dd>
+        </div>
+        <div className="kv">
+          <dt>Última atualização</dt><dd>{company.lastVerifiedAt ? formatDateTime(company.lastVerifiedAt) : '—'}</dd>
+        </div>
+        <div className="kv">
+          <dt>Confiança</dt><dd><ConfidenceTag confidence={company.discoveryConfidence} /></dd>
+        </div>
+        {company.sourceUrl && (
+          <div className="kv">
+            <dt>Link da fonte</dt><dd><a href={company.sourceUrl} target="_blank" rel="noreferrer" className="link">Abrir fonte ↗</a></dd>
+          </div>
+        )}
         {company.confidenceReasons && company.confidenceReasons.length > 0 && (
-          <>
+          <div className="kv">
             <dt>Motivos</dt><dd>{company.confidenceReasons.join(' · ')}</dd>
-          </>
+          </div>
         )}
       </div>
       {raw && (
