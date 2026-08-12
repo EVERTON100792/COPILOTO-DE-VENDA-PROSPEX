@@ -340,7 +340,7 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
       <div key={item.id} style={{
         position: 'relative', background: 'var(--surface)', border: '1px solid var(--border)', 
         borderRadius: 'var(--radius-sm)', overflow: 'hidden', display: 'flex', flexDirection: 'column', 
-        height: '280px', transition: 'all 0.3s'
+        height: '340px', transition: 'all 0.3s'
       }}>
         
         {/* Status Badge */}
@@ -421,6 +421,20 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
                       disabled={globalLoading || item.status === 'done'}
                     />
                   </div>
+                  <input 
+                    style={{ background: 'transparent', border: 'none', borderBottom: '1px solid var(--border)', fontSize: '12px', color: 'var(--text)', padding: '4px', width: '100%', outline: 'none' }}
+                    value={item.data.phone || ''} 
+                    onChange={e => updateItemData(index, 'phone', e.target.value)}
+                    placeholder="Telefone"
+                    disabled={globalLoading || item.status === 'done'}
+                  />
+                  <input 
+                    style={{ background: 'transparent', border: 'none', borderBottom: '1px solid var(--border)', fontSize: '12px', color: 'var(--text)', padding: '4px', width: '100%', outline: 'none' }}
+                    value={item.data.address || ''} 
+                    onChange={e => updateItemData(index, 'address', e.target.value)}
+                    placeholder="Endereço"
+                    disabled={globalLoading || item.status === 'done'}
+                  />
                   {item.error && <p style={{ color: 'var(--danger)', fontSize: '12px', marginTop: '4px', lineHeight: 1.2 }}>{item.error}</p>}
                 </>
               ) : (
