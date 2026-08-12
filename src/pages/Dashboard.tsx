@@ -1,9 +1,10 @@
 import { Link } from 'react-router-dom'
 import { useApp } from '../services/store'
 import { computeMetrics, funnel, leadsByCategory, scoreDistribution, topOpportunities } from '../services/insights'
-import { Card, ScoreBadge } from '../components/ui'
-import { Funnel, DonutChart, BarChart } from '../components/charts'
+import { ScoreBadge } from '../components/ui'
+import { Funnel, DonutChart, BarChart, Sparkline } from '../components/charts'
 import { timeAgo } from '../lib/utils'
+import { Users, Target, Globe, PhoneCall, Trophy, AlertTriangle, ArrowRight, Activity, MessageSquare, TrendingUp } from 'lucide-react'
 
 export default function Dashboard() {
   const leads = useApp((s) => s.leads)
@@ -24,136 +25,146 @@ export default function Dashboard() {
   const dueFollowups = followups.filter((f) => f.status === 'PENDING' && new Date(f.scheduledAt).getTime() <= Date.now()).length
 
   const donut = [
-    { label: 'HOT', value: dist.find((d) => d.range.includes('HOT'))?.count ?? 0, color: 'var(--danger)' },
-    { label: 'HIGH', value: dist.find((d) => d.range.includes('HIGH'))?.count ?? 0, color: 'var(--warning)' },
-    { label: 'MEDIUM', value: dist.find((d) => d.range.includes('MEDIUM'))?.count ?? 0, color: 'var(--info)' },
-    { label: 'LOW / VERY LOW', value: dist.filter((d) => d.range.includes('LOW')).reduce((a, d) => a + d.count, 0), color: 'var(--muted)' },
+    { label: 'HOT', value: dist.find((d) => d.range.includes('HOT'))?.count ?? 0, color: '#f43f5e' }, // danger (rose)
+    { label: 'HIGH', value: dist.find((d) => d.range.includes('HIGH'))?.count ?? 0, color: '#f59e0b' }, // warning (amber)
+    { label: 'MEDIUM', value: dist.find((d) => d.range.includes('MEDIUM'))?.count ?? 0, color: '#3b82f6' }, // info (blue)
+    { label: 'LOW', value: dist.filter((d) => d.range.includes('LOW')).reduce((a, d) => a + d.count, 0), color: '#64748b' }, // muted (slate)
   ]
 
+  // Synthetic sparkline data (for visuals)
+  const fakeSparkline1 = [10, 25, 20, 45, 30, 60, 50, 80]
+  const fakeSparkline2 = [5, 15, 10, 25, 20, 35, 45, 40]
+  const fakeSparkline3 = [2, 5, 4, 8, 7, 12, 10, 15]
+
   return (
-    <div>
-      <div className="page-header">
+    <div style={{ paddingBottom: 60 }}>
+      {/* Header */}
+      <div className="page-header" style={{ marginBottom: 32 }}>
         <div>
-          <h1 className="page-title">{greeting()}! 👋</h1>
-          <p className="page-subtitle">Resumo da sua operação de prospecção</p>
+          <h1 className="page-title" style={{ fontSize: 36, fontWeight: 800 }}>{greeting()}! 👋</h1>
+          <p className="page-subtitle" style={{ fontSize: 16 }}>Sua operação de prospecção em tempo real</p>
         </div>
         <div className="page-actions">
-          <Link to="/campaigns/new" className="btn btn-primary">+ Nova campanha</Link>
-          <Link to="/crm" className="btn btn-secondary">Abrir CRM</Link>
+          <Link to="/campaigns/new" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Target size={18} /> Nova campanha
+          </Link>
+          <Link to="/crm" className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Activity size={18} /> Abrir CRM
+          </Link>
         </div>
       </div>
 
       {settings.masterSwitch !== 'ON' && (
-        <div className="alert alert-warning">
-          <span>⚠️</span>
+        <div className="alert alert-warning" style={{ marginBottom: 32 }}>
+          <AlertTriangle size={20} />
           O interruptor mestre de automação está <b>{switchLabel(settings.masterSwitch)}</b>. Nenhum envio automatizado será executado.{' '}
           <Link to="/automations" className="link-btn">Configurar</Link>
         </div>
       )}
 
-      <div className="grid grid-5 mb-16">
-        <Metric label="Leads" value={m.totalLeads} />
-        <Metric label="Qualificados (score ≥ 60)" value={leads.filter((l) => l.score !== null && l.score >= 60).length} />
-        <Metric label="Sem site" value={m.noWebsite} />
-        <Metric label="Contatados" value={m.contacted} />
-        <Metric label="Fechados" value={m.won} />
-      </div>
+      {/* Bento Grid Layout */}
+      <div className="bento-grid">
+        
+        {/* Top Metrics Row */}
+        <div className="bento-col-3">
+          <MetricCard title="Total de Leads" value={m.totalLeads} icon={<Users size={20} />} sparkline={fakeSparkline1} color="#8b5cf6" />
+        </div>
+        <div className="bento-col-3">
+          <MetricCard title="Qualificados (>60)" value={leads.filter((l) => l.score !== null && l.score >= 60).length} icon={<Target size={20} />} sparkline={fakeSparkline2} color="#10b981" />
+        </div>
+        <div className="bento-col-3">
+          <MetricCard title="Contatados" value={m.contacted} icon={<MessageSquare size={20} />} sparkline={fakeSparkline3} color="#3b82f6" />
+        </div>
+        <div className="bento-col-3">
+          <MetricCard title="Negócios Fechados" value={m.won} icon={<Trophy size={20} />} sparkline={[1, 1, 2, 2, 3, 4, 4, 5]} color="#f59e0b" />
+        </div>
 
-      <div className="grid" style={{ gridTemplateColumns: '1.5fr 1fr' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <Card title="Funil de conversão">
+        {/* Charts Row */}
+        <div className="bento-col-8">
+          <div className="bento-card">
+            <div className="bento-card-title">Funil de Conversão <TrendingUp size={18} className="muted" /></div>
             <Funnel steps={funnelSteps} />
-          </Card>
-          <Card title="Leads por categoria">
+          </div>
+        </div>
+
+        <div className="bento-col-4">
+          <div className="bento-card">
+            <div className="bento-card-title">Distribuição de Score <Activity size={18} className="muted" /></div>
+            <DonutChart segments={donut} />
+          </div>
+        </div>
+
+        {/* Lower Row */}
+        <div className="bento-col-4">
+          <div className="bento-card" style={{ height: '100%' }}>
+            <div className="bento-card-title">Leads por Categoria <Globe size={18} className="muted" /></div>
             {byCategory.length ? (
               <BarChart data={byCategory.map((c) => ({ label: short(c.category, 16), value: c.count }))} />
             ) : (
-              <div className="muted small">Sem dados ainda. Crie uma campanha.</div>
+              <div className="muted small text-center p-8">Sem dados ainda</div>
             )}
-          </Card>
+          </div>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <Card title="Distribuição de score">
-            {leads.length ? <DonutChart segments={donut} /> : <div className="muted small">Sem leads para exibir.</div>}
-          </Card>
-          <Card title="Top oportunidades" actions={<Link to="/leads" className="link-btn">Ver leads</Link>}>
-            {opportunities.length === 0 && <div className="muted small">Nenhum lead ainda.</div>}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+
+        <div className="bento-col-4">
+          <div className="bento-card" style={{ height: '100%' }}>
+            <div className="bento-card-title">
+              Top Oportunidades 
+              <Link to="/leads" className="link-btn" style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 4 }}>
+                Ver todas <ArrowRight size={14} />
+              </Link>
+            </div>
+            {opportunities.length === 0 && <div className="muted small text-center p-8">Nenhum lead ainda.</div>}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 8 }}>
               {opportunities.slice(0, 5).map((o) => (
-                <Link key={o.lead.id} to={`/leads/${o.lead.id}`} className="search-row">
+                <Link key={o.lead.id} to={`/leads/${o.lead.id}`} className="search-row" style={{ padding: 12, borderRadius: 12, background: 'rgba(255,255,255,0.02)' }}>
                   <div className="flex items-center justify-between">
-                    <b>{o.companyName}</b>
+                    <b style={{ fontSize: 14 }}>{o.companyName}</b>
                     <ScoreBadge score={o.score} size={30} />
                   </div>
-                  <div className="tiny muted">{o.reason}</div>
+                  <div className="tiny muted" style={{ marginTop: 4 }}>{o.reason}</div>
                 </Link>
               ))}
             </div>
-          </Card>
-        </div>
-      </div>
-
-      <div className="grid grid-3 mt-16">
-        <Card title="Campanhas ativas" actions={<Link to="/campaigns" className="link-btn">Ver todas</Link>}>
-          {activeCampaigns.length === 0 && <div className="muted small">Nenhuma campanha em andamento. <Link to="/campaigns/new">Crie uma</Link>.</div>}
-          {activeCampaigns.slice(0, 4).map((c) => (
-            <Link key={c.id} to={`/campaigns/${c.id}`} style={{ display: 'block', marginBottom: 10 }}>
-              <div className="flex items-center justify-between">
-                <b className="small">{c.name}</b>
-                <span className={`badge badge-${c.status === 'RUNNING' ? 'success' : 'warning'}`}>{c.status === 'RUNNING' ? 'Rodando' : 'Pausada'}</span>
-              </div>
-              <div className="tiny muted">{c.niche} · {c.city}/{c.state}</div>
-              <div className="progress-track mt-8">
-                <div className="progress-fill" style={{ width: `${c.progress}%` }} />
-              </div>
-            </Link>
-          ))}
-        </Card>
-        <Card title="Atividade recente">
-          {lastActivities.length === 0 && <div className="muted small">Nenhuma atividade ainda.</div>}
-          <div className="timeline">
-            {lastActivities.map((a) => (
-              <div className="timeline-item" key={a.id}>
-                <div className="timeline-dot" />
-                <div className="timeline-body">
-                  <div className="timeline-title">{a.description}</div>
-                  <div className="timeline-time">{timeAgo(a.createdAt)}</div>
-                </div>
-              </div>
-            ))}
           </div>
-        </Card>
-        <Card title="Indicadores">
-          <Kv k="Taxa de resposta" v={m.responseRate === null ? 'Dados insuficientes' : `${m.responseRate}%`} />
-          <Kv k="Taxa de interesse" v={m.interestRate === null ? 'Dados insuficientes' : `${m.interestRate}%`} />
-          <Kv k="Taxa de proposta" v={m.proposalRate === null ? 'Dados insuficientes' : `${m.proposalRate}%`} />
-          <Kv k="Conversão" v={m.conversionRate === null ? 'Dados insuficientes' : `${m.conversionRate}%`} />
-          <Kv k="Score médio" v={m.avgScore === null ? '—' : String(m.avgScore)} />
-          <Kv k="Opt-outs registrados" v={String(m.optOut)} />
-          <Kv k="Follow-ups vencidos" v={dueFollowups > 0 ? `${dueFollowups} ⚠️` : '0'} />
-          <Kv k="Notificações não lidas" v={String(unreadNotifs)} />
-        </Card>
+        </div>
+
+        <div className="bento-col-4">
+          <div className="bento-card" style={{ height: '100%' }}>
+            <div className="bento-card-title">Atividade Recente <Activity size={18} className="muted" /></div>
+            {lastActivities.length === 0 && <div className="muted small text-center p-8">Nenhuma atividade.</div>}
+            <div className="timeline" style={{ marginTop: 16 }}>
+              {lastActivities.map((a) => (
+                <div className="timeline-item" key={a.id}>
+                  <div className="timeline-dot" style={{ boxShadow: '0 0 10px var(--primary)' }} />
+                  <div className="timeline-body">
+                    <div className="timeline-title" style={{ fontSize: 13 }}>{a.description}</div>
+                    <div className="timeline-time">{timeAgo(a.createdAt)}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   )
 }
 
-function Metric({ label, value }: { label: string; value: number }) {
+function MetricCard({ title, value, icon, sparkline, color }: { title: string; value: number; icon: React.ReactNode; sparkline: number[]; color: string }) {
   return (
-    <Card className="card-hover">
-      <div className="metric">
-        <div className="metric-value">{value.toLocaleString('pt-BR')}</div>
-        <div className="metric-label">{label}</div>
+    <div className="glow-metric-card">
+      <div className="metric-header">
+        {title}
+        <div className="metric-icon" style={{ color, boxShadow: `0 0 20px ${color}40`, border: `1px solid ${color}40` }}>
+          {icon}
+        </div>
       </div>
-    </Card>
-  )
-}
-
-function Kv({ k, v }: { k: string; v: string }) {
-  return (
-    <div className="kv">
-      <dt>{k}</dt>
-      <dd>{v}</dd>
+      <div className="metric-main">
+        <div className="metric-big-value">{value.toLocaleString('pt-BR')}</div>
+        <Sparkline values={sparkline} color={color} />
+      </div>
     </div>
   )
 }

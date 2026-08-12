@@ -818,3 +818,23 @@ table.data tr.clickable { cursor: pointer; }
 .dot-card-dot { position: absolute; width: 6px; height: 6px; background: #fff; border-radius: 50%; box-shadow: 0 0 15px 4px rgba(255, 255, 255, 0.8), 0 0 30px 8px rgba(100, 200, 255, 0.4); margin-top: -3px; margin-left: -3px; animation: dotTracer 8s cubic-bezier(0.4, 0.0, 0.2, 1) infinite; }
 @keyframes dotTracer { 0% { top: 0; left: 0; } 25% { top: 0; left: 100%; } 50% { top: 100%; left: 100%; } 75% { top: 100%; left: 0; } 100% { top: 0; left: 0; } }
 .dot-card-content { position: relative; z-index: 10; height: 100%; }
+
+/* --- Bento Grid Dashboard --- */
+.bento-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 20px; }
+.bento-col-12 { grid-column: span 12; }
+.bento-col-8 { grid-column: span 8; }
+.bento-col-4 { grid-column: span 4; }
+.bento-col-6 { grid-column: span 6; }
+.bento-col-3 { grid-column: span 3; }
+@media (max-width: 1024px) { .bento-col-8, .bento-col-4 { grid-column: span 12; } .bento-col-3 { grid-column: span 6; } }
+@media (max-width: 768px) { .bento-col-6, .bento-col-3 { grid-column: span 12; } }
+.glow-metric-card { position: relative; padding: 24px; border-radius: 24px; background: rgba(15, 15, 20, 0.7); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); overflow: hidden; display: flex; flex-direction: column; gap: 8px; transition: all 0.3s ease; }
+.glow-metric-card:hover { transform: translateY(-2px); border-color: var(--primary); box-shadow: 0 10px 40px -10px var(--primary); }
+.glow-metric-card::before { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, var(--primary) 0%, transparent 40%); opacity: 0; transition: opacity 0.3s; pointer-events: none; mix-blend-mode: screen; z-index: 0; }
+.glow-metric-card:hover::before { opacity: 0.15; }
+.metric-header { display: flex; align-items: center; justify-content: space-between; z-index: 1; position: relative; color: var(--muted); font-size: 14px; font-weight: 500; }
+.metric-icon { width: 40px; height: 40px; border-radius: 12px; background: rgba(255, 255, 255, 0.05); display: flex; align-items: center; justify-content: center; color: var(--primary); }
+.metric-main { display: flex; align-items: flex-end; justify-content: space-between; z-index: 1; position: relative; margin-top: 8px; }
+.metric-big-value { font-size: 32px; font-weight: 800; color: var(--text); letter-spacing: -1px; }
+.bento-card { background: rgba(15, 15, 20, 0.7); backdrop-filter: blur(20px); border-radius: 24px; border: 1px solid rgba(255, 255, 255, 0.1); padding: 24px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.2); }
+.bento-card-title { font-size: 16px; font-weight: 600; color: var(--text); display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
