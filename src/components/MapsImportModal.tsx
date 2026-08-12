@@ -337,16 +337,20 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
   // Helper para renderizar o card individual
   const renderCard = (item: BatchItem, index: number) => {
     return (
-      <div key={item.id} className="relative bg-gray-900/80 border border-gray-700 rounded-xl overflow-hidden shadow-sm flex flex-col h-[280px] transition-all hover:border-gray-600">
+      <div key={item.id} style={{
+        position: 'relative', background: 'var(--surface)', border: '1px solid var(--border)', 
+        borderRadius: 'var(--radius-sm)', overflow: 'hidden', display: 'flex', flexDirection: 'column', 
+        height: '280px', transition: 'all 0.3s'
+      }}>
         
         {/* Status Badge */}
-        <div className="absolute top-2 right-2 z-10 flex gap-2">
-          {item.status === 'extracting' && <span className="bg-primary/90 text-white text-xs px-2 py-1 rounded shadow animate-pulse">Lendo...</span>}
-          {item.status === 'prospecting' && <span className="bg-primary/90 text-white text-xs px-2 py-1 rounded shadow animate-pulse">Prospectando...</span>}
-          {item.status === 'extracted' && <span className="bg-yellow-500 text-black font-bold text-xs px-2 py-1 rounded shadow">Pronto para Prospectar</span>}
-          {item.status === 'done' && <span className="bg-success text-white text-xs px-2 py-1 rounded shadow">Concluído ✓</span>}
-          {item.status === 'error' && <span className="bg-danger text-white text-xs px-2 py-1 rounded shadow">Erro</span>}
-          {item.status === 'empty' && <span className="bg-gray-800 text-gray-400 text-xs px-2 py-1 rounded shadow">Vazio</span>}
+        <div style={{ position: 'absolute', top: '8px', right: '8px', zIndex: 10, display: 'flex', gap: '8px' }}>
+          {item.status === 'extracting' && <span style={{ background: 'var(--primary)', color: '#fff', fontSize: '12px', padding: '4px 8px', borderRadius: '4px', boxShadow: 'var(--primary-glow)' }}>Lendo...</span>}
+          {item.status === 'prospecting' && <span style={{ background: 'var(--primary)', color: '#fff', fontSize: '12px', padding: '4px 8px', borderRadius: '4px', boxShadow: 'var(--primary-glow)' }}>Prospectando...</span>}
+          {item.status === 'extracted' && <span style={{ background: 'var(--warning)', color: '#000', fontWeight: 'bold', fontSize: '12px', padding: '4px 8px', borderRadius: '4px' }}>Pronto para Prospectar</span>}
+          {item.status === 'done' && <span style={{ background: 'var(--success)', color: '#fff', fontSize: '12px', padding: '4px 8px', borderRadius: '4px' }}>Concluído ✓</span>}
+          {item.status === 'error' && <span style={{ background: 'var(--danger)', color: '#fff', fontSize: '12px', padding: '4px 8px', borderRadius: '4px' }}>Erro</span>}
+          {item.status === 'empty' && <span style={{ background: 'var(--surface-2)', color: 'var(--muted)', fontSize: '12px', padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--border)' }}>Vazio</span>}
           
           {item.imagePreview && item.status !== 'empty' && item.status !== 'extracting' && item.status !== 'prospecting' && (
             <button 
@@ -358,7 +362,7 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
                   return arr;
                 });
               }}
-              className="bg-red-500/80 hover:bg-red-500 text-white text-xs w-6 h-6 rounded flex items-center justify-center transition-colors"
+              style={{ background: 'var(--danger)', color: '#fff', fontSize: '12px', width: '24px', height: '24px', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer' }}
             >
               ×
             </button>
@@ -366,50 +370,50 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
         </div>
 
         {item.status === 'empty' ? (
-          <div className="flex-1 flex flex-col items-center justify-center p-4 text-center border-2 border-dashed border-gray-700/50 m-2 rounded-lg bg-gray-900/40">
-            <span className="text-3xl mb-2 opacity-50">📋</span>
-            <span className="text-gray-400 text-sm">Cole a imagem (Ctrl+V)</span>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px', textAlign: 'center', border: '2px dashed var(--border-soft)', margin: '8px', borderRadius: 'var(--radius-sm)', background: 'rgba(0,0,0,0.2)' }}>
+            <span style={{ fontSize: '32px', marginBottom: '8px', opacity: 0.5 }}>📋</span>
+            <span style={{ color: 'var(--muted)', fontSize: '14px' }}>Cole a imagem (Ctrl+V)</span>
           </div>
         ) : (
           <>
             {/* Image Preview Area */}
-            <div className="h-28 bg-black flex items-center justify-center border-b border-gray-800 relative">
-               {item.imagePreview && <img src={item.imagePreview} alt="Print" className="h-full w-full object-cover opacity-60" />}
+            <div style={{ height: '112px', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: '1px solid var(--border)', position: 'relative' }}>
+               {item.imagePreview && <img src={item.imagePreview} alt="Print" style={{ height: '100%', width: '100%', objectFit: 'cover', opacity: 0.6 }} />}
             </div>
             
             {/* Form / Data Area */}
-            <div className="p-3 flex-1 overflow-y-auto flex flex-col gap-2">
+            <div style={{ padding: '12px', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {item.status === 'extracting' || item.status === 'prospecting' ? (
-                <div className="flex-1 flex flex-col items-center justify-center text-center">
-                  <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mb-2" />
-                  <span className="text-xs text-gray-400">{item.status === 'extracting' ? 'Analisando...' : 'Prospectando...'}</span>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+                  <div style={{ width: '24px', height: '24px', border: '2px solid var(--primary)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'pulseDot 1s linear infinite' }} />
+                  <span style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '8px' }}>{item.status === 'extracting' ? 'Analisando...' : 'Prospectando...'}</span>
                 </div>
               ) : item.data ? (
                 <>
                   <input 
-                    className="bg-transparent border-b border-gray-700 text-sm font-semibold text-white px-1 py-1 w-full focus:border-primary outline-none" 
+                    style={{ background: 'transparent', border: 'none', borderBottom: '1px solid var(--border)', fontSize: '14px', fontWeight: 600, color: 'var(--text)', padding: '4px', width: '100%', outline: 'none' }}
                     value={item.data.name || ''} 
                     onChange={e => updateItemData(index, 'name', e.target.value)}
                     placeholder="Nome da Empresa"
                     disabled={globalLoading || item.status === 'done'}
                   />
                   <input 
-                    className="bg-transparent border-b border-gray-700 text-xs text-gray-300 px-1 py-1 w-full focus:border-primary outline-none" 
+                    style={{ background: 'transparent', border: 'none', borderBottom: '1px solid var(--border)', fontSize: '12px', color: 'var(--muted)', padding: '4px', width: '100%', outline: 'none' }}
                     value={item.data.category || ''} 
                     onChange={e => updateItemData(index, 'category', e.target.value)}
                     placeholder="Nicho/Categoria"
                     disabled={globalLoading || item.status === 'done'}
                   />
-                  <div className="flex gap-2">
+                  <div style={{ display: 'flex', gap: '8px' }}>
                     <input 
-                      className="bg-transparent border-b border-gray-700 text-xs text-gray-400 px-1 py-1 w-full focus:border-primary outline-none" 
+                      style={{ background: 'transparent', border: 'none', borderBottom: '1px solid var(--border)', fontSize: '12px', color: 'var(--muted-2)', padding: '4px', width: '100%', outline: 'none' }}
                       value={item.data.city || ''} 
                       onChange={e => updateItemData(index, 'city', e.target.value)}
                       placeholder="Cidade"
                       disabled={globalLoading || item.status === 'done'}
                     />
                     <input 
-                      className="bg-transparent border-b border-gray-700 text-xs text-yellow-400 px-1 py-1 w-12 text-center focus:border-primary outline-none" 
+                      style={{ background: 'transparent', border: 'none', borderBottom: '1px solid var(--border)', fontSize: '12px', color: 'var(--warning)', padding: '4px', width: '48px', textAlign: 'center', outline: 'none' }}
                       value={item.data.rating || ''} 
                       onChange={e => updateItemData(index, 'rating', e.target.value)}
                       placeholder="Nota"
@@ -417,11 +421,11 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
                       disabled={globalLoading || item.status === 'done'}
                     />
                   </div>
-                  {item.error && <p className="text-danger text-xs mt-1 leading-tight">{item.error}</p>}
+                  {item.error && <p style={{ color: 'var(--danger)', fontSize: '12px', marginTop: '4px', lineHeight: 1.2 }}>{item.error}</p>}
                 </>
               ) : (
-                <div className="flex-1 flex items-center justify-center">
-                  <span className="text-xs text-gray-500">Imagem colada. Aguardando extração.</span>
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ fontSize: '12px', color: 'var(--muted-2)', textAlign: 'center' }}>Imagem colada. Aguardando extração.</span>
                 </div>
               )}
             </div>
@@ -433,21 +437,21 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
 
   return (
     <Modal open={open} onClose={onClose} title="Extração Inteligente em Massa" wide>
-      <div className="space-y-6">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
         
         {/* Header Options */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gray-900/50 p-4 rounded-xl border border-gray-800">
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '16px', background: 'var(--surface-2)', padding: '16px', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
           <div>
-            <h3 className="text-white font-medium">Lote de Importação</h3>
-            <p className="text-gray-400 text-sm">Quantas empresas deseja processar de uma vez?</p>
+            <h3 style={{ margin: 0, color: 'var(--text)', fontSize: '16px' }}>Lote de Importação</h3>
+            <p style={{ margin: 0, color: 'var(--muted)', fontSize: '14px' }}>Quantas empresas deseja processar de uma vez?</p>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-300">Quantidade:</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '14px', color: 'var(--text)' }}>Quantidade:</span>
             <select 
               value={batchSize} 
               onChange={e => handleBatchSizeChange(Number(e.target.value))}
               disabled={globalLoading}
-              className="bg-gray-800 border border-gray-700 text-white text-sm rounded-lg focus:ring-primary focus:border-primary block p-2 outline-none cursor-pointer"
+              style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', padding: '8px', borderRadius: 'var(--radius-sm)', outline: 'none', cursor: 'pointer' }}
             >
               {Array.from({ length: 14 }, (_, i) => i + 1).map(n => (
                 <option key={n} value={n}>{n} {n === 1 ? 'empresa' : 'empresas'}</option>
@@ -458,7 +462,7 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
 
         {/* Global Loading UI */}
         {globalLoading && (
-          <div className="flex flex-col items-center gap-4 w-full bg-black/20 p-6 rounded-2xl border border-primary/20">
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', background: 'rgba(0,0,0,0.2)', padding: '24px', borderRadius: 'var(--radius)', border: '1px solid var(--primary-soft)' }}>
             <PipelineUI 
               steps={globalPhase === 'extracting' ? IMAGE_STEPS : PROSPECT_STEPS} 
               currentStep={globalPhase === 'extracting' ? imageStep : prospectStep} 
@@ -467,7 +471,7 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
             <button
               type="button"
               onClick={handleCancel}
-              className="text-gray-400 hover:text-white text-sm font-medium transition-colors underline decoration-gray-600 underline-offset-4"
+              style={{ background: 'transparent', border: 'none', color: 'var(--muted)', textDecoration: 'underline', cursor: 'pointer', fontSize: '14px' }}
             >
               Cancelar Lote
             </button>
@@ -475,12 +479,12 @@ export function MapsImportModal({ open, onClose }: MapsImportModalProps) {
         )}
         
         {/* Grid de Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
           {items.map((item, idx) => renderCard(item, idx))}
         </div>
 
         {/* Footer Actions */}
-        <div className={`flex ${globalLoading ? 'justify-center' : 'justify-end gap-3'} mt-8 pt-6 border-t border-gray-800/60`}>
+        <div style={{ display: 'flex', justifyContent: globalLoading ? 'center' : 'flex-end', gap: '12px', marginTop: '32px', paddingTop: '24px', borderTop: '1px solid var(--border-soft)' }}>
           {!globalLoading && (
             <>
               <Button type="button" variant="secondary" onClick={onClose} disabled={globalLoading}>
