@@ -63,40 +63,42 @@ export function AppLayout() {
       )}
 
       <aside className={`sidebar ${mobileMenuOpen ? 'mobile-open' : ''}`} aria-label="Navegação principal">
-        <div className="sidebar-brand">
-          <div className="logo">P</div>
-          <div className="brand-name">
-            PROSPEX
-            <small>Autopilot</small>
-          </div>
-        </div>
-        <nav className="sidebar-nav">
-          {NAV.map((group) => (
-            <div key={group.section}>
-              <div className="sidebar-section">{group.section}</div>
-              {group.items.map((item) => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
-                  end={item.to === '/'}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <span className="icon" aria-hidden="true">{item.icon}</span>
-                  {item.label}
-                </NavLink>
-              ))}
+        <div className="sidebar-inner">
+          <div className="sidebar-brand">
+            <div className="logo">P</div>
+            <div className="brand-name">
+              PROSPEX
+              <small>Autopilot</small>
             </div>
-          ))}
-        </nav>
-        <div className="sidebar-footer">
-          <div className="sidebar-status">
-            <span className={`dot ${isDemo ? 'dot-warning' : 'dot-success'}`} />
-            {isDemo ? 'Modo DEMO ativo' : 'Ambiente conectado'}
           </div>
-          <div className="sidebar-status">
-            <span className="dot dot-success" />
-            {APP_NAME}
+          <nav className="sidebar-nav">
+            {NAV.map((group) => (
+              <div key={group.section}>
+                <div className="sidebar-section">{group.section}</div>
+                {group.items.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+                    end={item.to === '/'}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <span className="icon" aria-hidden="true">{item.icon}</span>
+                    {item.label}
+                  </NavLink>
+                ))}
+              </div>
+            ))}
+          </nav>
+          <div className="sidebar-footer">
+            <div className="sidebar-status">
+              <span className={`dot ${isDemo ? 'dot-warning' : 'dot-success'}`} />
+              {isDemo ? 'Modo DEMO' : 'Conectado'}
+            </div>
+            <div className="sidebar-status">
+              <span className="dot dot-success" />
+              {APP_NAME}
+            </div>
           </div>
         </div>
       </aside>

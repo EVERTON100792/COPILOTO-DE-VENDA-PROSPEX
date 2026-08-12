@@ -217,86 +217,63 @@ export default function Discovery() {
                   </span>
                 </h2>
                 
-                <div className="horizontal-scroll-container">
+                <div className="grid grid-dense">
                   {list.map((company) => {
                     const ws = websiteStatus(company)
                     const icon = categoryIcon(company.category)
                     const hasLead = leadsByCompany.has(company.id)
                     return (
-                      <Card key={company.id} className="card-hover" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%', padding: '16px 20px' }}>
-                        <div>
-                          {/* Header */}
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-                            <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                              <div style={{
-                                width: 40, height: 40, borderRadius: 10, flexShrink: 0,
-                                background: 'var(--surface-2)', display: 'grid', placeItems: 'center',
-                                fontSize: 20, border: '1px solid var(--border)'
-                              }}>
-                                {icon}
-                              </div>
-                              <div>
-                                <div style={{ fontWeight: 700, fontSize: 14, lineHeight: 1.3, wordBreak: 'break-word', paddingRight: 8 }}>{company.name}</div>
-                                <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
-                                  {company.category || 'Negócio Local'}
-                                </div>
+                      <Card key={company.id} className="card-hover card-compact">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                            <div style={{
+                              width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+                              background: 'var(--surface-2)', display: 'grid', placeItems: 'center',
+                              fontSize: 18, border: '1px solid var(--border)'
+                            }}>
+                              {icon}
+                            </div>
+                            <div>
+                              <div style={{ fontWeight: 700, fontSize: 13.5, lineHeight: 1.2, wordBreak: 'break-word', paddingRight: 8 }}>{company.name}</div>
+                              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
+                                {company.category || 'Negócio Local'}
                               </div>
                             </div>
-                            <Button 
-                              variant="danger" 
-                              style={{ padding: '2px 6px', fontSize: 11, background: 'transparent', color: 'var(--muted)', border: 'none' }}
-                              onClick={() => removeCompany(company.id)}
-                              title="Excluir permanentemente"
+                          </div>
+                          <button 
+                            className="link-btn"
+                            style={{ padding: 4, color: 'var(--muted)', fontSize: 14 }}
+                            onClick={() => removeCompany(company.id)}
+                            title="Excluir permanentemente"
+                          >
+                            ✕
+                          </button>
+                        </div>
+
+                        {/* Badges */}
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                          <Badge variant={ws.variant}>{ws.label}</Badge>
+                          {company.isDemo && <Badge variant="muted">DEMO</Badge>}
+                        </div>
+
+                        {/* Minimal Info */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11.5, color: 'var(--muted)', flex: 1 }}>
+                          {company.city && <span style={{ display: 'flex', gap: 6 }}><span style={{ color: 'var(--primary)', filter: 'grayscale(0.5)' }}>📍</span> {company.city}</span>}
+                          {company.phone && (
+                            <a 
+                              href={`https://wa.me/55${company.phone.replace(/\D/g, '')}`} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              style={{ display: 'flex', gap: 6, color: 'var(--text)', textDecoration: 'none' }}
                             >
-                              🗑️
-                            </Button>
-                          </div>
-
-                          {/* Badge Website */}
-                          <div style={{ marginBottom: 10 }}>
-                            <Badge variant={ws.variant}>{ws.label}</Badge>
-                          </div>
-
-                          {/* Info */}
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12, color: 'var(--muted)', marginBottom: 12 }}>
-                            {company.city && <span style={{ display: 'flex', gap: 6 }}><span style={{ color: 'var(--primary)' }}>📍</span> {company.city}{company.state ? `/${company.state}` : ''}</span>}
-                            {company.phone && (
-                              <a 
-                                href={`https://wa.me/55${company.phone.replace(/\D/g, '')}`} 
-                                target="_blank" 
-                                rel="noopener noreferrer" 
-                                style={{ display: 'flex', gap: 6, color: 'var(--fg)', textDecoration: 'none' }}
-                                title="Abrir no WhatsApp"
-                              >
-                                <span style={{ color: 'var(--success)' }}>💬</span> 
-                                <span style={{ textDecoration: 'underline' }}>{company.phone}</span>
-                              </a>
-                            )}
-                            {company.rating && <span style={{ display: 'flex', gap: 6 }}><span style={{ color: 'var(--warning)' }}>⭐</span> {company.rating.toFixed(1)} ({company.reviewCount || 0} avaliações)</span>}
-                            {company.website && (
-                              <a href={company.website} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--info)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', gap: 6 }}>
-                                <span>🌐</span> {company.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}
-                              </a>
-                            )}
-                            {company.instagram && (
-                              <a href={company.instagram} target="_blank" rel="noopener noreferrer" style={{ color: '#E1306C', display: 'flex', gap: 6 }}>
-                                <span>📸</span> Instagram
-                              </a>
-                            )}
-                            {company.hours && <span style={{ display: 'flex', gap: 6 }}><span>🕒</span> {company.hours.length > 30 ? company.hours.substring(0, 30) + '...' : company.hours}</span>}
-                            {company.summary && <span style={{ display: 'flex', gap: 6, fontStyle: 'italic', color: 'var(--fg)', marginTop: 4 }}><span>📝</span> {company.summary.length > 80 ? company.summary.substring(0, 80) + '...' : company.summary}</span>}
-                          </div>
-
-                          {/* Demo badge */}
-                          {company.isDemo && (
-                            <div style={{ marginBottom: 8 }}>
-                              <Badge variant="muted">DEMO</Badge>
-                            </div>
+                              <span style={{ color: 'var(--success)' }}>💬</span> 
+                              <span>{company.phone}</span>
+                            </a>
                           )}
                         </div>
 
-                        {/* CTA */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 'auto' }}>
+                        {/* CTA - visible on hover or low opacity by default */}
+                        <div className="card-actions">
                           <div style={{ display: 'flex', gap: 8 }}>
                             <Button
                               variant="primary"
@@ -304,7 +281,7 @@ export default function Discovery() {
                               style={{ flex: 1 }}
                               onClick={() => handleProspectar(company)}
                             >
-                              {contactedCompanyIds.has(company.id) ? '💬 Continuar Conversa' : '⚡ Prospectar IA'}
+                              {contactedCompanyIds.has(company.id) ? '💬 Continuar' : '⚡ Prospectar IA'}
                             </Button>
                             <a 
                               href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(company.name + ' ' + (company.city || ''))}`}
@@ -312,13 +289,13 @@ export default function Discovery() {
                               rel="noopener noreferrer"
                               className="btn btn-secondary btn-sm"
                               style={{ padding: '6px 10px' }}
-                              title="Ver no Google Maps"
+                              title="Ver no Maps"
                             >
                               🗺️
                             </a>
                           </div>
                           {hasLead && (
-                            <div style={{ fontSize: 11, color: 'var(--success)', textAlign: 'center' }}>
+                            <div style={{ fontSize: 11, color: 'var(--success)', textAlign: 'center', fontWeight: 600 }}>
                               ✓ Lead já cadastrado
                             </div>
                           )}
