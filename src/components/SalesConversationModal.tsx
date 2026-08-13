@@ -198,12 +198,25 @@ export const SalesConversationModal: React.FC<Props> = ({ open, company, leadId,
 
   async function analyzeResponse() {
     if (!clientInput.trim()) { toast('error', 'Digite a resposta do cliente antes de analisar.'); return }
+    // Conversa já encerrada (ganho/perdido/opt-out) → reutilizar última classificação, sem custo de IA.
+    const currentSession = useApp.getState().prospectingSessions.find((s) => s.companyId === company?.id)
+    if (
+      currentSession &&
+      (currentSession.status === 'WON' || currentSession.status === 'NOT_INTERESTED')
+    ) {
+      toast('warning', 'Conversa já encerrada. A classificação anterior foi mantida (economia de chamadas de IA).')
+      return
+    }
     setAnalyzing(true)
     setStage('ANALYZING')
     try {
+      // Histórico completo da conversa (abertura + troca de mensagens) como contexto
+      const history = [
+        ...(currentSession?.messages ?? []),
+      ].filter((m) => m.content && m.content.trim())
       const result = settings.demoMode
         ? buildInstruction(analyzeClientResponse(clientInput), company)
-        : await analyzeClientResponseAI(clientInput, company, apiKey)
+        : await analyzeClientResponseAI(clientInput, company, apiKey, { history, cacheKey: `${company?.id}::${clientInput.trim()}` })
       setInstruction(result)
       const finalStage = result.isWon ? 'WON' : result.isLost ? 'LOST' : 'INSTRUCTING'
       setStage(finalStage)
@@ -500,8 +513,13 @@ export const SalesConversationModal: React.FC<Props> = ({ open, company, leadId,
                      instruction.analysis.category === 'OBJECTION_NEED' ? 'QUESTIONA NECESSIDADE' :
                      instruction.analysis.category === 'THINK_ABOUT' ? 'PRECISA DE TEMPO' :
                      instruction.analysis.category === 'QUESTION' ? 'FEZ UMA PERGUNTA' :
-                     instruction.analysis.category === 'NOT_INTERESTED' ? 'DESINTERESSE' : 'ANALISADO'}
+                     instruction.analysis.category === 'NOT_INTERESTED' ? 'DESINTERESSE' :
+                     instruction.analysis.category === 'PEDIU_PARAR' ? '🛑 PEDIU PARA PARAR (Opt-out)' :
+                     instruction.analysis.category === 'WON' ? '🎉 VENDA FECHADA!' : 'ANALISADO'}
                   </span>
+                  <Badge variant={instruction.analysis.confidence >= 0.85 ? 'success' : instruction.analysis.confidence >= 0.6 ? 'warning' : 'danger'}>
+                    Confiança: {Math.round(instruction.analysis.confidence * 100)}%
+                  </Badge>
                 </div>
                 <div style={{ fontSize: 13, color: 'var(--muted)' }}>{instruction.analysis.summary}</div>
               </div>

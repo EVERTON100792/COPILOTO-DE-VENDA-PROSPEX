@@ -4,30 +4,186 @@ import type {
   GlobalSettings, AgentRun, Proposal, AuditEntry, AutomationRule, AiUsage, ScoreWeights,
   DiscoveryRun, DiscoveryResultRow, LeadQualification, OutreachCampaign, OutreachMessage, OutreachActivity, Demo,
   ProspectingSession, ProspectingMessage, WebsiteProject, WebsiteVersion,
+  LeadTier, ScoreBreakdown, WebsiteScan, OpportunityAnalysis,
 } from '../types'
 import { DEFAULT_SETTINGS } from '../config/defaults'
 import { supabase } from '../lib/supabase'
 import { getItem, setItem, clearAll } from '../database/storage'
 import { buildDemoCompanies } from '../database/demoFactory'
-import { uid, nowIso } from '../lib/utils'
+import { uid, uuidV4, isValidUuid, nowIso } from '../lib/utils'
 
-// Converte objeto camelCase para snake_case (para enviar ao Supabase)
-function toSnake(obj: Record<string, unknown>): Record<string, unknown> {
-  return Object.fromEntries(
-    Object.entries(obj).map(([k, v]) => [
-      k.replace(/([A-Z])/g, '_$1').toLowerCase(),
-      v,
-    ])
-  )
+// ---------- Mappers: só colunas existentes no schema do Supabase ----------
+
+const COMPANY_DB_COLS = [
+  'id', 'workspace_id', 'name', 'category', 'city', 'state', 'country', 'address',
+  'phone', 'whatsapp', 'email', 'website', 'instagram', 'facebook', 'rating',
+  'review_count', 'hours', 'source', 'is_demo', 'created_at',
+  'data_status', 'source_type', 'source_record_id', 'source_url', 'retrieved_at',
+  'last_verified_at', 'verification_status', 'raw_data_id', 'discovery_confidence',
+  'confidence_reasons', 'phone_normalized', 'phone_country', 'phone_type',
+  'whatsapp_status', 'website_status', 'website_quality_score',
+  'website_quality_factors', 'website_checked_at', 'do_not_contact', 'field_sources',
+] as const
+
+const COMPANY_ENUM_VALUES: Record<string, readonly string[]> = {
+  data_status: ['REAL', 'DEMO', 'IMPORTED', 'MANUAL', 'UNVERIFIED'],
+  whatsapp_status: ['UNKNOWN', 'VERIFIED', 'NOT_VERIFIED'],
+  website_status: ['NO_WEBSITE', 'WEBSITE_FOUND', 'WEBSITE_UNVERIFIED', 'WEBSITE_BROKEN', 'WEBSITE_OUTDATED', 'WEBSITE_POOR_MOBILE', 'WEBSITE_UNKNOWN'],
 }
-// Converte objeto snake_case para camelCase (para receber do Supabase)
-function toCamel(obj: Record<string, unknown>): Record<string, unknown> {
-  return Object.fromEntries(
-    Object.entries(obj).map(([k, v]) => [
-      k.replace(/_([a-z])/g, (_, c) => c.toUpperCase()),
-      v,
-    ])
-  )
+
+function companyToRow(c: Company, workspaceId: string): Record<string, unknown> {
+  const row: Record<string, unknown> = { id: c.id, workspace_id: workspaceId }
+  for (const col of COMPANY_DB_COLS) {
+    if (col === 'id' || col === 'workspace_id') continue
+    const camel = col.replace(/_([a-z])/g, (_, ch) => ch.toUpperCase())
+    const v = (c as unknown as Record<string, unknown>)[camel]
+    if (v === undefined || v === null) continue
+    const allowed = COMPANY_ENUM_VALUES[col]
+    if (allowed && !allowed.includes(v as string)) continue
+    row[col] = v
+  }
+  return row
+}
+
+function rowToCompany(row: Record<string, unknown>, workspaceId: string): Company {
+  const c: Company = {
+    id: row.id as string,
+    workspaceId: workspaceId,
+    name: row.name as string,
+    category: (row.category as string) ?? null,
+    city: (row.city as string) ?? null,
+    state: (row.state as string) ?? null,
+    country: (row.country as string) ?? null,
+    address: (row.address as string) ?? null,
+    phone: (row.phone as string) ?? null,
+    whatsapp: (row.whatsapp as string) ?? null,
+    email: (row.email as string) ?? null,
+    website: (row.website as string) ?? null,
+    instagram: (row.instagram as string) ?? null,
+    facebook: (row.facebook as string) ?? null,
+    rating: (row.rating as number) ?? null,
+    reviewCount: (row.review_count as number) ?? null,
+    hours: (row.hours as string) ?? null,
+    source: (row.source as string) ?? null,
+    isDemo: !!row.is_demo,
+    createdAt: (row.created_at as string) ?? nowIso(),
+  }
+  const extras: Record<string, unknown> = {
+    dataStatus: row.data_status, sourceType: row.source_type, sourceRecordId: row.source_record_id,
+    sourceUrl: row.source_url, retrievedAt: row.retrieved_at, lastVerifiedAt: row.last_verified_at,
+    verificationStatus: row.verification_status, rawDataId: row.raw_data_id,
+    discoveryConfidence: row.discovery_confidence, confidenceReasons: row.confidence_reasons,
+    phoneNormalized: row.phone_normalized, phoneCountry: row.phone_country, phoneType: row.phone_type,
+    whatsappStatus: row.whatsapp_status, websiteStatus: row.website_status,
+    websiteQualityScore: row.website_quality_score, websiteQualityFactors: row.website_quality_factors,
+    websiteCheckedAt: row.website_checked_at, doNotContact: row.do_not_contact,
+    fieldSources: row.field_sources,
+  }
+  for (const [k, v] of Object.entries(extras)) {
+    if (v !== undefined && v !== null) (c as unknown as Record<string, unknown>)[k] = v
+  }
+  return c
+}
+
+const LEAD_DB_COLS = [
+  'id', 'workspace_id', 'company_id', 'campaign_id', 'status', 'tier', 'score',
+  'score_breakdown', 'website_status', 'website_scan', 'digital_presence_score',
+  'has_whatsapp', 'has_instagram', 'has_facebook', 'has_phone', 'analysis',
+  'analysis_hash', 'last_analyzed_at', 'proposal', 'favorite', 'tags',
+  'notes_count', 'next_action', 'next_action_at', 'created_at', 'updated_at',
+] as const
+
+function leadToRow(l: Lead, workspaceId: string): Record<string, unknown> {
+  const row: Record<string, unknown> = { id: l.id, workspace_id: workspaceId }
+  for (const col of LEAD_DB_COLS) {
+    if (col === 'id' || col === 'workspace_id') continue
+    const camel = col.replace(/_([a-z])/g, (_, ch) => ch.toUpperCase())
+    const v = (l as unknown as Record<string, unknown>)[camel]
+    if (v !== undefined && v !== null) row[col] = v
+  }
+  return row
+}
+
+function rowToLead(row: Record<string, unknown>, workspaceId: string): Lead {
+  return {
+    id: row.id as string,
+    workspaceId: workspaceId,
+    companyId: row.company_id as string,
+    campaignId: (row.campaign_id as string) ?? null,
+    status: row.status as Lead['status'],
+    tier: (row.tier as LeadTier) ?? null,
+    score: (row.score as number) ?? null,
+    scoreBreakdown: (row.score_breakdown as ScoreBreakdown[]) ?? null,
+    websiteStatus: row.website_status as Lead['websiteStatus'],
+    websiteScan: (row.website_scan as WebsiteScan) ?? null,
+    digitalPresenceScore: (row.digital_presence_score as number) ?? null,
+    hasWhatsapp: !!row.has_whatsapp,
+    hasInstagram: !!row.has_instagram,
+    hasFacebook: !!row.has_facebook,
+    hasPhone: !!row.has_phone,
+    analysis: (row.analysis as OpportunityAnalysis) ?? null,
+    analysisHash: (row.analysis_hash as string) ?? null,
+    lastAnalyzedAt: (row.last_analyzed_at as string) ?? null,
+    messages: [],
+    proposal: (row.proposal as Proposal) ?? null,
+    favorite: !!row.favorite,
+    tags: (row.tags as string[]) ?? [],
+    notesCount: (row.notes_count as number) ?? 0,
+    nextAction: (row.next_action as string) ?? null,
+    nextActionAt: (row.next_action_at as string) ?? null,
+    createdAt: (row.created_at as string) ?? nowIso(),
+    updatedAt: (row.updated_at as string) ?? nowIso(),
+  }
+}
+
+function sessionToRow(s: ProspectingSession, workspaceId: string): Record<string, unknown> {
+  return {
+    id: s.id,
+    workspace_id: workspaceId,
+    company_id: s.companyId,
+    status: s.status,
+    opening_message: s.openingMessage,
+    messages: s.messages,
+    ui_state: s.uiState ?? null,
+    created_at: s.createdAt,
+    updated_at: s.updatedAt,
+  }
+}
+
+function rowToSession(row: Record<string, unknown>): ProspectingSession {
+  return {
+    id: row.id as string,
+    companyId: row.company_id as string,
+    status: row.status as ProspectingSession['status'],
+    messages: (row.messages as ProspectingMessage[]) ?? [],
+    openingMessage: (row.opening_message as string) ?? null,
+    uiState: (row.ui_state as ProspectingSession['uiState']) ?? undefined,
+    createdAt: (row.created_at as string) ?? nowIso(),
+    updatedAt: (row.updated_at as string) ?? nowIso(),
+  }
+}
+
+// Garante que ids locais antigos (ex: "cmp_xxx") viraram uuid antes de ir ao banco
+function remapIds(companies: Company[], leads: Lead[], sessions: ProspectingSession[]): {
+  companies: Company[]; leads: Lead[]; sessions: ProspectingSession[]
+} {
+  const idMap = new Map<string, string>()
+  const nextId = (old: string) => {
+    if (isValidUuid(old)) return old
+    const fresh = uuidV4()
+    idMap.set(old, fresh)
+    return fresh
+  }
+  const comps = companies.map((c) => ({ ...c, id: nextId(c.id) }))
+  const ls = leads.map((l) => ({ ...l, id: nextId(l.id), companyId: idMap.get(l.companyId) ?? l.companyId }))
+  const sess = sessions.map((s) => ({ ...s, id: nextId(s.id), companyId: idMap.get(s.companyId) ?? s.companyId }))
+  return { companies: comps, leads: ls, sessions: sess }
+}
+
+async function syncSessionToDb(s: ProspectingSession, workspaceId: string): Promise<void> {
+  if (!workspaceId || workspaceId === 'ws_main') return
+  const { error } = await supabase.from('prospecting_sessions').upsert(sessionToRow(s, workspaceId))
+  if (error) console.error('[Supabase] syncSession:', error.message)
 }
 
 
@@ -226,27 +382,34 @@ export const useApp = create<AppState>((set, get) => ({
       const { data: remoteLeads } = await supabase
         .from('leads').select('*')
         .eq('workspace_id', wsId)
+      const { data: remoteSessions } = await supabase
+        .from('prospecting_sessions').select('*')
+        .eq('workspace_id', wsId)
 
       const hasRemoteData = (remoteComps && remoteComps.length > 0)
 
       if (hasRemoteData) {
         // Banco tem dados → usar dados remotos
-        const cloudCompanies = (remoteComps || []).map(r => toCamel(r) as unknown as Company)
-        const cloudLeads = (remoteLeads || []).map(r => toCamel(r) as unknown as Lead)
-        set({ companies: cloudCompanies, leads: cloudLeads })
-        persist({ companies: cloudCompanies, leads: cloudLeads })
-        console.log(`[Sync] Carregados ${cloudCompanies.length} empresas e ${cloudLeads.length} leads do banco.`)
-      } else if (localCompanies.length > 0) {
+        const cloudCompanies = (remoteComps || []).map(r => rowToCompany(r, wsId))
+        const cloudLeads = (remoteLeads || []).map(r => rowToLead(r, wsId))
+        const cloudSessions = (remoteSessions || []).map(r => rowToSession(r))
+        set({ companies: cloudCompanies, leads: cloudLeads, prospectingSessions: cloudSessions })
+        persist({ companies: cloudCompanies, leads: cloudLeads, prospectingSessions: cloudSessions })
+        console.log(`[Sync] Carregados ${cloudCompanies.length} empresas, ${cloudLeads.length} leads e ${cloudSessions.length} sessões do banco.`)
+      } else if (localCompanies.length > 0 || get().prospectingSessions.length > 0) {
         // Banco vazio mas localStorage tem dados → migrar para o banco!
-        console.log(`[Sync] Migrando ${localCompanies.length} empresas e ${localLeads.length} leads para o banco...`)
-        const compsToUpload = localCompanies.map(c => {
-          const snake = toSnake({ ...c, workspaceId: wsId } as unknown as Record<string, unknown>)
-          return snake
+        console.log('[Sync] Migrando dados locais para o banco (remapeando ids antigos)...')
+        const remapped = remapIds(localCompanies, localLeads, get().prospectingSessions)
+        set({
+          companies: remapped.companies,
+          leads: remapped.leads,
+          prospectingSessions: remapped.sessions,
         })
-        const leadsToUpload = localLeads.map(l => {
-          const snake = toSnake({ ...l, workspaceId: wsId } as unknown as Record<string, unknown>)
-          return snake
-        })
+        persist({ companies: remapped.companies, leads: remapped.leads, prospectingSessions: remapped.sessions })
+
+        const compsToUpload = remapped.companies.map(c => companyToRow(c, wsId))
+        const leadsToUpload = remapped.leads.map(l => leadToRow(l, wsId))
+        const sessionsToUpload = remapped.sessions.map(s => sessionToRow(s, wsId))
 
         // Enviar em lotes de 50
         for (let i = 0; i < compsToUpload.length; i += 50) {
@@ -258,6 +421,11 @@ export const useApp = create<AppState>((set, get) => ({
           const batch = leadsToUpload.slice(i, i + 50)
           const { error } = await supabase.from('leads').upsert(batch)
           if (error) console.error('[Sync] Erro leads batch:', error.message)
+        }
+        for (let i = 0; i < sessionsToUpload.length; i += 50) {
+          const batch = sessionsToUpload.slice(i, i + 50)
+          const { error } = await supabase.from('prospecting_sessions').upsert(batch)
+          if (error) console.error('[Sync] Erro sessions batch:', error.message)
         }
         console.log('[Sync] Migração concluída com sucesso!')
       }
@@ -312,21 +480,30 @@ export const useApp = create<AppState>((set, get) => ({
     const idx = companies.findIndex((c) => c.id === company.id)
     const next = idx >= 0 ? companies.map((c) => (c.id === company.id ? company : c)) : [...companies, company]
     set({ companies: next }); persist({ companies: next });
-    supabase.from('companies').upsert(toSnake(company as unknown as Record<string, unknown>))
-      .then(({ error }) => { if (error) console.error('[Supabase] upsertCompany:', error.message) });
+    if (get().workspaceId !== 'ws_main') {
+      supabase.from('companies').upsert(companyToRow(company, get().workspaceId))
+        .then(({ error }) => { if (error) console.error('[Supabase] upsertCompany:', error.message) })
+    }
   },
   patchCompany: (id, patch) => {
     const companies = get().companies.map(c => c.id === id ? { ...c, ...patch } : c)
     set({ companies }); persist({ companies })
-    supabase.from('companies').update(toSnake(patch as Record<string, unknown>)).eq('id', id)
-      .then(({ error }) => { if (error) console.error('[Supabase] patchCompany:', error.message) })
+    if (get().workspaceId !== 'ws_main') {
+      const target = companies.find((c) => c.id === id)
+      if (target) {
+        supabase.from('companies').update(companyToRow(target, get().workspaceId)).eq('id', id)
+          .then(({ error }) => { if (error) console.error('[Supabase] patchCompany:', error.message) })
+      }
+    }
   },
   removeCompany: (id) => {
     const companies = get().companies.filter((c) => c.id !== id)
     const leads = get().leads.filter((l) => l.companyId !== id)
     set({ companies, leads }); persist({ companies, leads })
-    supabase.from('companies').delete().eq('id', id)
-      .then(({ error }) => { if (error) console.error('[Supabase] removeCompany:', error.message) })
+    if (get().workspaceId !== 'ws_main') {
+      supabase.from('companies').delete().eq('id', id)
+        .then(({ error }) => { if (error) console.error('[Supabase] removeCompany:', error.message) })
+    }
   },
   clearAllCompanies: () => {
     set({ companies: [], leads: [], discoveryResults: [], discoveryRuns: [] })
@@ -363,21 +540,27 @@ export const useApp = create<AppState>((set, get) => ({
     const idx = leads.findIndex((l) => l.id === lead.id)
     const next = idx >= 0 ? leads.map((l) => (l.id === lead.id ? lead : l)) : [...leads, lead]
     set({ leads: next }); persist({ leads: next });
-    supabase.from('leads').upsert(toSnake(lead as unknown as Record<string, unknown>))
-      .then(({ error }) => { if (error) console.error('[Supabase] upsertLead:', error.message) });
+    if (get().workspaceId !== 'ws_main') {
+      supabase.from('leads').upsert(leadToRow(lead, get().workspaceId))
+        .then(({ error }) => { if (error) console.error('[Supabase] upsertLead:', error.message) })
+    }
   },
   setLeads: (leads) => { set({ leads }); persist({ leads }) },
   removeLead: (id) => {
     const leads = get().leads.filter((l) => l.id !== id)
     set({ leads }); persist({ leads })
-    supabase.from('leads').delete().eq('id', id)
-      .then(({ error }) => { if (error) console.error('[Supabase] removeLead:', error.message) })
+    if (get().workspaceId !== 'ws_main') {
+      supabase.from('leads').delete().eq('id', id)
+        .then(({ error }) => { if (error) console.error('[Supabase] removeLead:', error.message) })
+    }
   },
   moveLead: (id, status) => {
     const leads = get().leads.map((l) => (l.id === id ? { ...l, status, updatedAt: nowIso() } : l))
     set({ leads }); persist({ leads })
-    supabase.from('leads').update({ status, updated_at: nowIso() }).eq('id', id)
-      .then(({ error }) => { if (error) console.error('[Supabase] moveLead:', error.message) })
+    if (get().workspaceId !== 'ws_main') {
+      supabase.from('leads').update({ status, updated_at: nowIso() }).eq('id', id)
+        .then(({ error }) => { if (error) console.error('[Supabase] moveLead:', error.message) })
+    }
   },
 
   addActivity: (a) => {
@@ -529,6 +712,7 @@ export const useApp = create<AppState>((set, get) => ({
     const idx = sessions.findIndex((s) => s.id === session.id)
     const next = idx >= 0 ? sessions.map((s) => (s.id === session.id ? session : s)) : [...sessions, session]
     set({ prospectingSessions: next }); persist({ prospectingSessions: next })
+    if (get().workspaceId !== 'ws_main') syncSessionToDb(session, get().workspaceId)
   },
   addMessageToSession: (sessionId, message) => {
     const sessions = get().prospectingSessions.map((s) =>
@@ -537,12 +721,16 @@ export const useApp = create<AppState>((set, get) => ({
         : s
     )
     set({ prospectingSessions: sessions }); persist({ prospectingSessions: sessions })
+    const updated = sessions.find((s) => s.id === sessionId)
+    if (updated && get().workspaceId !== 'ws_main') syncSessionToDb(updated, get().workspaceId)
   },
   updateSessionStatus: (sessionId, status) => {
     const sessions = get().prospectingSessions.map((s) =>
       s.id === sessionId ? { ...s, status, updatedAt: new Date().toISOString() } : s
     )
     set({ prospectingSessions: sessions }); persist({ prospectingSessions: sessions })
+    const updated = sessions.find((s) => s.id === sessionId)
+    if (updated && get().workspaceId !== 'ws_main') syncSessionToDb(updated, get().workspaceId)
   },
 
   upsertWebsiteProject: (project) => {

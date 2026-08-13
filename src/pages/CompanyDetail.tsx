@@ -131,6 +131,15 @@ export default function CompanyDetail() {
     const textToSend = inputOverride || clientInput
     if (!textToSend.trim() || !session || analyzing) return
 
+    // Conversa encerrada (ganho/perdido/opt-out) → não reclassificar: reutilize o último resultado.
+    const closingRoles = ['WON', 'NOT_INTERESTED', 'LOST']
+    const lastAnalysis = [...session.messages].reverse().find((m) => m.role === 'AI_ANALYSIS')
+    if (closingRoles.includes(session.status) && lastAnalysis?.metadata?.suggestedReply) {
+      store.toast('warning', 'Conversa encerrada (não foi reanalisada para economizar chamadas de IA). Última resposta mantida.')
+      setClientInput('')
+      return
+    }
+
     setAnalyzing(true)
 
     // Add Client message to chat stream
@@ -141,8 +150,15 @@ export default function CompanyDetail() {
     setClientInput('')
 
     try {
+      // Histórico completo da conversa como contexto (todas as mensagens, não só a última)
+      const history = session.messages.map((m) => ({ role: m.role, content: m.content }))
       const agent = new SalesAgent()
-      const result = await agent.execute({ company: company!, clientResponse: textToSend, apiKey }, {
+      const result = await agent.execute({
+        company: company!,
+        clientResponse: textToSend,
+        apiKey,
+        history,
+      }, {
         workspaceId: store.workspaceId, demoMode: settings.demoMode,
         nicheDna: null, campaign: null, settings,
       })
@@ -158,6 +174,7 @@ export default function CompanyDetail() {
           emoji: out?.emoji,
           whatToDo: out?.whatToDo,
           suggestedReply: out?.suggestedReply,
+          confidence: out?.confidence,
           showSiteButton: out?.showSiteButton,
           isWon: out?.isWon,
           isLost: out?.isLost,

@@ -5,6 +5,7 @@ import { timeAgo } from '../lib/utils'
 import { useState } from 'react'
 import { Modal } from '../components/ui'
 import { StarfieldBg } from '../components/ui/StarfieldBg'
+import { useAuth } from '../contexts/AuthContext'
 
 const NAV = [
   { section: 'Visão geral', items: [{ to: '/', label: 'Dashboard', icon: '📊' }] },
@@ -31,11 +32,13 @@ export function AppLayout() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [query, setQuery] = useState('')
   const navigate = useNavigate()
+  const { user, signOut } = useAuth()
   const notifications = useApp((s) => s.notifications)
   const leads = useApp((s) => s.leads)
   const companies = useApp((s) => s.companies)
   const [notifOpen, setNotifOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
 
   const unread = notifications.filter((n) => !n.read).length
 
@@ -130,6 +133,12 @@ export function AppLayout() {
             </div>
           </div>
           <div className="topbar-right">
+            {userMenuOpen && (
+              <div
+                style={{ position: 'fixed', inset: 0, zIndex: 40 }}
+                onClick={() => setUserMenuOpen(false)}
+              />
+            )}
             <div style={{ position: 'relative' }}>
               <button className="icon-btn" onClick={() => setNotifOpen(!notifOpen)} aria-label="Notificações">
                 🔔 {unread > 0 && <span className="badge-dot">{unread}</span>}
@@ -151,8 +160,42 @@ export function AppLayout() {
                 </div>
               )}
             </div>
-            <div className="avatar" title={useApp.getState().currentUser.name}>
-              {useApp.getState().currentUser.name.slice(0, 1).toUpperCase()}
+            <div style={{ position: 'relative' }}>
+              <button
+                className="avatar"
+                title={useApp.getState().currentUser.name}
+                aria-label="Menu do usuário"
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                style={{ cursor: 'pointer', border: 'none', fontFamily: 'inherit' }}
+              >
+                {useApp.getState().currentUser.name.slice(0, 1).toUpperCase()}
+              </button>
+              {userMenuOpen && (
+                <div className="card" style={{ position: 'absolute', right: 0, top: 44, width: 220, zIndex: 50 }}>
+                  <div className="px-12 py-8 border-bottom" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+                    <div className="bold small" style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {user?.email ?? useApp.getState().currentUser.name}
+                    </div>
+                  </div>
+                  <button
+                    className="link-btn px-12 py-8 full-width text-left"
+                    onClick={() => { setUserMenuOpen(false); navigate('/settings') }}
+                  >
+                    ⚙️ Configurações
+                  </button>
+                  <button
+                    className="link-btn px-12 py-8 full-width text-left"
+                    style={{ color: 'var(--red, #f87171)' }}
+                    onClick={async () => {
+                      setUserMenuOpen(false)
+                      await signOut()
+                      navigate('/login')
+                    }}
+                  >
+                    🚪 Sair
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </header>

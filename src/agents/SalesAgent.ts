@@ -14,12 +14,15 @@ export interface SalesAgentInput {
   company: Company | any
   clientResponse: string
   apiKey?: string
+  /** Histórico completo da conversa (vendedor + cliente) para contexto */
+  history?: Array<{ role: string; content: string }>
 }
 
 export interface SalesAgentOutput {
   category: string
   emoji: string
   summary: string
+  confidence: number
   whatToDo: string
   suggestedReply: string
   showSiteButton: boolean
@@ -35,6 +38,7 @@ export class SalesAgent extends BaseAgent {
   protected async runCore(input: Record<string, unknown>): Promise<SalesAgentOutput> {
     const company = input.company as Company | any
     const clientResponse = input.clientResponse as string
+    const history = input.history as Array<{ role: string; content: string }> | undefined
     void input.apiKey
 
     const demoMode = (input.demoMode as boolean | undefined) ?? useApp.getState().settings.demoMode
@@ -44,12 +48,13 @@ export class SalesAgent extends BaseAgent {
     // já tem fallback interno para o motor de regras.
     const result = demoMode
       ? buildInstruction(analyzeClientResponse(clientResponse), company)
-      : await analyzeClientResponseAI(clientResponse, company, '')
+      : await analyzeClientResponseAI(clientResponse, company, '', { history })
 
     return {
       category: result.analysis.category,
       emoji: result.analysis.emoji,
       summary: result.analysis.summary,
+      confidence: result.analysis.confidence,
       whatToDo: result.whatToDo,
       suggestedReply: result.suggestedReply,
       showSiteButton: result.showSiteButton,

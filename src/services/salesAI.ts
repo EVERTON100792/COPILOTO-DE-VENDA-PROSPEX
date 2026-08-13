@@ -1,6 +1,8 @@
 // Sales AI Engine — Prospex Autopilot
 // Modo demo: templates determinísticos ricos, humanos e hiper-precisos
 // Modo real: API unificada (OpenCode Go, OpenRouter, OpenAI, Gemini, etc.)
+// Classificação de resposta: IA com contexto da conversa completa + cache;
+// fallback automático para o motor de palavras-chave se a IA falhar.
 
 import type { Company } from '../types'
 import { callAI } from './aiClient'
@@ -16,6 +18,7 @@ export type SalesResponseCategory =
   | 'QUESTION'
   | 'NOT_INTERESTED'
   | 'WON'
+  | 'PEDIU_PARAR'
 
 export type SalesStage =
   | 'OPENING'
@@ -25,6 +28,9 @@ export type SalesStage =
   | 'CLOSING'
   | 'WON'
   | 'LOST'
+
+// Categorias que encerram a conversa — nunca reclassificar depois disso
+const FINAL_CATEGORIES: readonly SalesResponseCategory[] = ['WON', 'NOT_INTERESTED', 'PEDIU_PARAR']
 
 export interface SalesMessage {
   id: string
@@ -59,6 +65,21 @@ export interface SalesInstruction {
   showProposalButton: boolean
   isWon: boolean
   isLost: boolean
+  /** true quando veio da IA; false quando veio do motor de regras (fallback) */
+  fromAI?: boolean
+}
+
+/** Turno de conversa usado como contexto para a IA */
+export interface ConversationTurn {
+  role: 'vendedor' | 'cliente' | 'sistema'
+  content: string
+}
+
+// Cache de classificações: mesma mensagem/mesmo lead → mesma classificação, sem custo.
+const classificationCache = new Map<string, SalesInstruction>()
+
+export function clearClassificationCache(): void {
+  classificationCache.clear()
 }
 
 function getNiche(category: string | null): string {
@@ -76,19 +97,40 @@ function getNiche(category: string | null): string {
 export function generateOpeningMessage(company: Company | any): string {
   const name = company?.name || 'sua empresa'
   const niche = getNiche(company?.category)
+  const city = company?.city || 'sua região'
 
   const nicheDetail =
-    niche === 'gastronomia' ? 'cardápio digital e integração direta com WhatsApp' :
-    niche === 'saude' ? 'agendamento online de consultas e apresentação de tratamentos' :
-    niche === 'estetica' ? 'catálogo visual de procedimentos e fotos de antes/depois' :
-    niche === 'automotivo' ? 'tabela interativa de serviços e solicitação de orçamento rápido' :
-    niche === 'fitness' ? 'grade de horários, modalidades e tabela de planos' :
-    niche === 'pet' ? 'agendamento fácil de banho, tosa e consultas' : 'apresentação profissional de serviços e botão direto para WhatsApp'
+    niche === 'gastronomia' ? 'cardápio e integração direta com WhatsApp' :
+    niche === 'saude' ? 'agendamento online e apresentação dos atendimentos' :
+    niche === 'estetica' ? 'portfólio de trabalhos e facilidade de agendar pelo WhatsApp' :
+    niche === 'automotivo' ? 'lista de serviços e pedido de orçamento pelo WhatsApp' :
+    niche === 'fitness' ? 'horários, modalidades e planos' :
+    niche === 'pet' ? 'agendamento de banho, tosa e consultas' : 'apresentação profissional dos serviços e botão direto para WhatsApp'
 
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Bom dia!' : hour < 18 ? 'Boa tarde!' : 'Boa noite!'
 
-  return `${greeting} Tudo bem? Me chamo Everton, moro aqui em Rolândia e sou especialista em criação de sites para empresas locais. Pesquisei o ${name} e notei que vocês ainda não possuem um site institucional moderno. Hoje, estar sem site significa perder clientes todos os dias para concorrentes que aparecem primeiro no Google. Montei uma demonstração gratuita de um site exclusivo para o ${name} (com ${nicheDetail}). Posso te enviar o link para dar uma olhada sem compromisso?`
+  return `${greeting} Tudo bem? Pesquisei um pouco sobre o ${name} em ${city} e percebi que vocês concentram o atendimento pelas redes sociais e pelo WhatsApp. Com isso em mente, imaginei que poderia ser útil ter uma página simples centralizando as informações da empresa, com ${nicheDetail}. Montei uma demonstração gratuita pensando nesse cenário. Posso te enviar o link?`
+}
+
+/** Formata o histórico da conversa como contexto legível para a IA */
+export function formatConversationHistory(
+  messages: Array<{ role: string; content: string }> | undefined | null,
+  limit = 40
+): string {
+  if (!messages || messages.length === 0) return ''
+  const turns = messages
+    .filter((m) => m.content && m.content.trim())
+    .slice(-limit)
+    .map((m) => {
+      const role = m.role
+      if (role === 'CLIENT' || role === 'cliente') return `Cliente: ${m.content}`
+      if (role === 'AI_OPENING' || role === 'AI_SUGGESTION' || role === 'vendedor') return `Vendedor: ${m.content}`
+      if (role === 'AI_INSTRUCTION' || role === 'AI_ANALYSIS' || role === 'sistema') return `(IA interna, não enviada ao cliente): ${m.content}`
+      return `Mensagem: ${m.content}`
+    })
+    .join('\n')
+  return turns
 }
 
 export async function generateOpeningMessageAI(company: Company | any, apiKey?: string): Promise<string> {
@@ -109,18 +151,14 @@ export async function generateOpeningMessageAI(company: Company | any, apiKey?: 
   const system = `${SALES_BRAIN_PROMPT}
 
 O sistema solicita a GERAÇÃO DA PRIMEIRA ABORDAGEM para a empresa abaixo.
-Você deve agir como Everton, de Rolândia/PR, especialista em sites locais.
 A empresa é: ${company?.name || 'Empresa Local'}
-Categoria: ${company?.category || 'Negócio Local'}
-Cidade: ${company?.city || 'Rolândia'}
+Tipo de negócio: ${company?.category || 'Negócio Local'}
+Cidade: ${company?.city || 'N/D'}
 ${extraFacts ? `\nFATOS DESCOBERTOS NA INTERNET SOBRE A EMPRESA:\n${extraFacts}` : ''}
 
-INSTRUÇÕES:
-- Inicie SEMPRE com uma saudação educada (ex: "Bom dia!", "Boa tarde!") e pergunte se está tudo bem (ex: "Tudo bem com vocês?"). NUNCA inicie de forma seca apenas com "Olá,".
-- O texto deve ser natural, educado e ir direto ao ponto de forma cordial.
-- Diga que você preparou uma demonstração gratuita de um site exclusivo para eles e pergunte se pode enviar o link.
-- ${extraFacts ? 'USE SUTILMENTE 1 DOS FATOS DESCOBERTOS (resumo, horário ou endereço) para provar que você estudou a empresa. Ex: "Notei que o endereço de vocês fica na..." ou "Vi que o foco de vocês é...".' : 'Seja direto e cordial.'}
-- Não use palavras difíceis ou jargões.
+Regras extras para esta mensagem:
+- Use APENAS os fatos acima como observações verificáveis. Se não houver fatos suficientes, use a observação neutra padrão.
+- Seja a primeira mensagem de um vendedor consultivo: sem pressão, sem gatilhos de medo, sem jargão técnico.
 - Retorne APENAS o texto da mensagem, sem aspas, sem formatação JSON, sem introduções.`
 
   try {
@@ -136,14 +174,20 @@ INSTRUÇÕES:
 }
 
 
-// Rule Engine Keywords
+// ---------------------------------------------------------------------------
+// MOTOR DE PALAVRAS-CHAVE (FALLBACK) — usado APENAS quando a IA não responde
+// ---------------------------------------------------------------------------
 const WON_KW = ['fechado', 'fechei', 'contrato', 'aceito', 'aceitar', 'combinado', 'pode fazer', 'vamos em frente', 'aprovado', 'faz aí', 'pode começar', 'quero fechar']
 const NOT_INTERESTED_KW = [
   'não gostei', 'nao gostei', 'não gostamos', 'nao gostamos', 'não curti', 'nao curti',
   'não tenho interesse', 'sem interesse', 'não preciso', 'nao preciso', 'não quero', 'nao quero',
-  'não obrigado', 'nao obrigado', 'pode parar', 'remov', 'bloquear', 'nao tenho', 'não muito obrigado',
+  'não obrigado', 'nao obrigado', 'nao tenho', 'não muito obrigado',
   'nao obg', 'odiei', 'detestei', 'péssimo', 'pessimo', 'horrível', 'horrivel', 'ruim', 'fraco',
   'nada a ver', 'esquece', 'fora', 'descarte', 'não faz sentido', 'nao faz sentido'
+]
+const OPT_OUT_KW = [
+  'pode parar', 'pare de', 'para de', 'não envie', 'nao envie', 'remov', 'bloquear', 'tirar do cadastro',
+  'descadastrar', 'opt-out', 'spam', 'não quero receber', 'nao quero receber', 'não manda mais', 'nao manda mais'
 ]
 const BUDGET_KW = [
   'sem dinheiro', 'sem grana', 'sem verba', 'sem caixa', 'grana curta', 'ta difícil', 'tá difícil',
@@ -157,12 +201,17 @@ const INTERESTED_KW = ['interesse', 'quero', 'queria', 'como funciona', 'me cont
 export function analyzeClientResponse(response: string): SalesAnalysis {
   const lower = response.toLowerCase().trim()
 
-  // 1. Check WON
+  // 1. PEDIU_PARAR (opt-out) — prioridade máxima
+  if (OPT_OUT_KW.some((k) => lower.includes(k))) {
+    return { category: 'PEDIU_PARAR', confidence: 0.97, summary: 'Cliente pediu para parar de receber contato (opt-out).', emoji: '🛑' }
+  }
+
+  // 2. Check WON
   if (WON_KW.some((k) => lower.includes(k))) {
     return { category: 'WON', confidence: 0.97, summary: 'Cliente fechou o negócio!', emoji: '🎉' }
   }
 
-  // 2. Check NOT_INTERESTED
+  // 3. Check NOT_INTERESTED
   if (
     NOT_INTERESTED_KW.some((k) => lower.includes(k)) ||
     lower.includes('não gost') || lower.includes('nao gost') ||
@@ -172,28 +221,28 @@ export function analyzeClientResponse(response: string): SalesAnalysis {
     return { category: 'NOT_INTERESTED', confidence: 0.95, summary: 'Cliente sinalizou desinteresse.', emoji: '😔' }
   }
 
-  // 3. Check BUDGET CONSTRAINTS ("sem dinheiro", "sem caixa")
+  // 4. Check BUDGET CONSTRAINTS ("sem dinheiro", "sem caixa")
   if (BUDGET_KW.some((k) => lower.includes(k))) {
     return { category: 'OBJECTION_BUDGET', confidence: 0.95, summary: 'Cliente relatou limitação de orçamento ou caixa.', emoji: '💸' }
   }
 
-  // 4. Check PRICE QUESTIONS ("quanto custa", "valor")
+  // 5. Check PRICE QUESTIONS ("quanto custa", "valor")
   if (PRICE_KW.some((k) => lower.includes(k))) {
     return { category: 'OBJECTION_PRICE', confidence: 0.95, summary: 'Cliente quer saber valores e orçamento.', emoji: '💰' }
   }
 
-  // 5. Check THINK ABOUT
+  // 6. Check THINK ABOUT
   if (THINK_KW.some((k) => lower.includes(k))) {
     return { category: 'THINK_ABOUT', confidence: 0.88, summary: 'Cliente quer mais tempo para decidir.', emoji: '🤔' }
   }
 
-  // 6. Check INTERESTED
+  // 7. Check INTERESTED
   const isNegated = lower.startsWith('não') || lower.startsWith('nao') || lower.includes(' não ') || lower.includes(' nao ')
   if (!isNegated && INTERESTED_KW.some((k) => lower.includes(k))) {
     return { category: 'INTERESTED', confidence: 0.90, summary: 'Cliente demonstrou interesse claro!', emoji: '🔥' }
   }
 
-  // 7. Check QUESTION
+  // 8. Check QUESTION
   if (lower.includes('?')) {
     return { category: 'QUESTION', confidence: 0.80, summary: 'Cliente fez uma pergunta pontual.', emoji: '❓' }
   }
@@ -254,6 +303,11 @@ export function buildInstruction(analysis: SalesAnalysis, company: Company | any
       whatToSay: 'Encerrar contato de forma cortês e elegante.',
       suggestedReply: `Poxa, sem problemas! Agradeço de coração pelo seu retorno. Deixo as portas abertas se no futuro o ${name} precisar de um site profissional. Desejo muito sucesso aos seus negócios!`,
     },
+    PEDIU_PARAR: {
+      whatToDo: 'RESPEITE O PEDIDO IMEDIATAMENTE. Não envie mais nada. Marque o contato como opt-out/DO_NOT_CONTACT.',
+      whatToSay: 'Confirme o pedido de forma curta e respeitosa.',
+      suggestedReply: `Perfeito, entendido! Já deixei registrado para não receberem mais contato da nossa parte. Desculpe qualquer incômodo e muito sucesso com a empresa!`,
+    },
   }
 
   const instr = map[analysis.category]
@@ -263,76 +317,123 @@ export function buildInstruction(analysis: SalesAnalysis, company: Company | any
     showSiteButton: ['INTERESTED', 'WON', 'QUESTION', 'OBJECTION_PRICE', 'OBJECTION_BUDGET'].includes(analysis.category),
     showProposalButton: ['INTERESTED', 'WON', 'OBJECTION_PRICE'].includes(analysis.category),
     isWon: analysis.category === 'WON',
-    isLost: analysis.category === 'NOT_INTERESTED',
+    isLost: analysis.category === 'NOT_INTERESTED' || analysis.category === 'PEDIU_PARAR',
   }
+}
+
+const EMOJI_MAP: Record<SalesResponseCategory, string> = {
+  INTERESTED: '🔥',
+  OBJECTION_BUDGET: '💸',
+  OBJECTION_PRICE: '💰',
+  OBJECTION_NEED: '🎯',
+  THINK_ABOUT: '🤔',
+  QUESTION: '❓',
+  NOT_INTERESTED: '😔',
+  WON: '🎉',
+  PEDIU_PARAR: '🛑',
+}
+
+export interface AnalyzeOptions {
+  /** Histórico completo da conversa (mensagens do vendedor e do cliente) */
+  history?: Array<{ role: string; content: string }>
+  /** Chave de cache explícita (ex: leadId + mensagem). Se omitida, deriva de company+resposta. */
+  cacheKey?: string
+  /** true → retorna classificação anterior em cache sem chamar a IA novamente */
+  reuseCacheOnly?: boolean
 }
 
 export async function analyzeClientResponseAI(
   response: string,
   company: Company | any,
-  apiKey: string
+  apiKey: string,
+  options?: AnalyzeOptions
 ): Promise<SalesInstruction> {
+  const companyId = company?.id || 'unknown'
+  const cacheKey = options?.cacheKey || `${companyId}::${response.trim().slice(0, 120)}`
+
+  // Reuso de classificação já feita (evita custo desnecessário)
+  const cached = classificationCache.get(cacheKey)
+  if (cached) return cached
+  if (options?.reuseCacheOnly) {
+    const analysis = analyzeClientResponse(response)
+    return buildInstruction(analysis, company)
+  }
+
+  const historyText = formatConversationHistory(options?.history)
+
   const systemPrompt = `${SALES_BRAIN_PROMPT}
 
 O sistema solicita a ANÁLISE DA MENSAGEM DO CLIENTE para a empresa abaixo.
 Você deve agir como o SALES BRAIN.
 A empresa prospectada é: ${company?.name || 'Empresa Local'}
-Categoria: ${company?.category || 'Negócio Local'}
+Tipo de negócio: ${company?.category || 'Negócio Local'}
 Cidade: ${company?.city || 'Rolândia'}
+${historyText ? `\nHISTÓRICO COMPLETO DA CONVERSA ATÉ AQUI (para responder com coerência com o que foi dito antes):\n${historyText}` : ''}
+
+Analise a ÚLTIMA mensagem do cliente considerando TODO o histórico acima.
 
 Retorne EXATAMENTE no formato JSON válido:
 {
-  "category": "INTERESTED" | "OBJECTION_BUDGET" | "OBJECTION_PRICE" | "OBJECTION_NEED" | "THINK_ABOUT" | "QUESTION" | "NOT_INTERESTED" | "WON",
+  "category": "INTERESTED" | "OBJECTION_BUDGET" | "OBJECTION_PRICE" | "OBJECTION_NEED" | "THINK_ABOUT" | "QUESTION" | "NOT_INTERESTED" | "WON" | "PEDIU_PARAR",
+  "confidence": 0.0 a 1.0 (sua confiança na classificação),
   "summary": "Resumo em 1 frase curta do posicionamento do cliente",
   "whatToDo": "Instrução tática direta para o vendedor",
-  "suggestedReply": "Mensagem exata pronta para enviar no WhatsApp do cliente"
-}`
+  "suggestedReply": "Mensagem exata pronta para enviar no WhatsApp do cliente, coerente com o histórico"
+}
+- Use "PEDIU_PARAR" quando o cliente pedir explicitamente para não ser mais contatado (remover, parar, spam, "não manda mais").
+- Use "WON" apenas quando houver fechamento claro (aceitou, contratou, "pode fazer").`
 
   try {
     const raw = await callAI({
       systemPrompt,
-      userMessage: `Empresa: ${company?.name || 'Empresa'} (${company?.category || 'Negócio Local'} em ${company?.city || 'Rolândia'})\nResposta enviada pelo cliente no WhatsApp: "${response}"`,
+      userMessage: `Empresa: ${company?.name || 'Empresa'} (${company?.category || 'Negócio Local'} em ${company?.city || 'Rolândia'})\nÚLTIMA resposta enviada pelo cliente no WhatsApp: "${response}"`,
     })
 
     const cleaned = raw.replace(/```json\s*|```/g, '').trim()
     const json = JSON.parse(cleaned)
 
-    const category: SalesResponseCategory = json.category || analyzeClientResponse(response).category
+    const fallbackAnalysis = analyzeClientResponse(response)
+    const category: SalesResponseCategory = json.category || fallbackAnalysis.category
 
-    const emojiMap: Record<SalesResponseCategory, string> = {
-      INTERESTED: '🔥',
-      OBJECTION_BUDGET: '💸',
-      OBJECTION_PRICE: '💰',
-      OBJECTION_NEED: '🎯',
-      THINK_ABOUT: '🤔',
-      QUESTION: '❓',
-      NOT_INTERESTED: '😔',
-      WON: '🎉',
-    }
+    const confidenceRaw = Number(json.confidence)
+    const confidence = Number.isFinite(confidenceRaw) && confidenceRaw > 0 && confidenceRaw <= 1
+      ? Math.round(confidenceRaw * 100) / 100
+      : 0.9
 
     const analysis: SalesAnalysis = {
       category,
-      confidence: 0.95,
-      summary: json.summary || `Cliente sinalizou: ${category}`,
-      emoji: emojiMap[category] || '💬',
+      confidence,
+      summary: json.summary || fallbackAnalysis.summary,
+      emoji: EMOJI_MAP[category] || '💬',
     }
 
-    return {
+    const instruction: SalesInstruction = {
       analysis,
-      whatToDo: json.whatToDo || 'Responda mantendo o tom humano e profissional.',
+      whatToDo: json.whatToDo || fallbackAnalysis.summary,
       whatToSay: json.whatToDo || '',
-      suggestedReply: json.suggestedReply || '',
+      suggestedReply: json.suggestedReply || buildInstruction(fallbackAnalysis, company).suggestedReply,
       showSiteButton: ['INTERESTED', 'WON', 'QUESTION', 'OBJECTION_PRICE', 'OBJECTION_BUDGET'].includes(category),
       showProposalButton: ['INTERESTED', 'WON', 'OBJECTION_PRICE'].includes(category),
       isWon: category === 'WON',
-      isLost: category === 'NOT_INTERESTED',
+      isLost: category === 'NOT_INTERESTED' || category === 'PEDIU_PARAR',
+      fromAI: true,
     }
+
+    classificationCache.set(cacheKey, instruction)
+    return instruction
   } catch (err: any) {
     console.warn('[salesAI] Usando motor de regras inteligentes devido a erro na chamada AI:', err)
     const analysis = analyzeClientResponse(response)
     const instruction = buildInstruction(analysis, company)
     instruction.whatToDo = `[ERRO NA IA: ${err.message || String(err)}] - Fallback ativado:\n${instruction.whatToDo}`
     instruction.suggestedReply = `[⚠️ A IA falhou ao gerar a resposta. Erro: ${err.message || String(err)}]\n\n${instruction.suggestedReply}`
+    instruction.fromAI = false
+    classificationCache.set(cacheKey, instruction)
     return instruction
   }
+}
+
+/** true se a categoria encerra a conversa (ganho/perdido/opt-out) */
+export function isFinalCategory(category: SalesResponseCategory): boolean {
+  return FINAL_CATEGORIES.includes(category)
 }

@@ -789,6 +789,8 @@ export interface ProspectingMessage {
     showSiteButton?: boolean
     isWon?: boolean
     isLost?: boolean
+    confidence?: number
+    fromAI?: boolean
   }
   createdAt: string
 }

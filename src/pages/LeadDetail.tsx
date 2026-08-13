@@ -628,6 +628,10 @@ function OutreachTab({ lead, company }: { lead: Lead; company?: any }) {
 
   const handleRecordReply = async () => {
     if (!replyInput.trim()) return
+    if (lead.status === 'WON' || lead.status === 'LOST' || lead.status === 'DO_NOT_CONTACT') {
+      toast('warning', `Conversa encerrada (${lead.status}). A classificação anterior foi mantida.`)
+      return
+    }
     setBusy(true)
     try {
       const res = await responseService.recordLeadReply(lead.id, replyInput.trim())
@@ -728,7 +732,14 @@ function OutreachTab({ lead, company }: { lead: Lead; company?: any }) {
 
         {analysisResult && (
           <div style={{ marginTop: '1rem', padding: '1rem', background: 'var(--surface-2)', borderRadius: '6px', borderLeft: '4px solid var(--primary)' }}>
-            <div style={{ fontWeight: 700 }}>Categoria: {analysisResult.category} (Intent Score: {analysisResult.intentScore} pts)</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700 }}>
+              Categoria: {analysisResult.category} (Intent Score: {analysisResult.intentScore} pts)
+              {analysisResult.confidence != null && (
+                <Badge variant={analysisResult.confidence >= 0.85 ? 'success' : analysisResult.confidence >= 0.6 ? 'warning' : 'danger'}>
+                  Confiança: {Math.round(analysisResult.confidence * 100)}%
+                </Badge>
+              )}
+            </div>
             <div style={{ fontSize: '0.9rem', marginTop: '0.25rem' }}>{analysisResult.summary}</div>
             <div style={{ fontSize: '0.85rem', color: 'var(--muted)', marginTop: '0.5rem' }}>
               <b>💡 Próxima Ação Sugerida:</b> {analysisResult.suggestedNextAction}
